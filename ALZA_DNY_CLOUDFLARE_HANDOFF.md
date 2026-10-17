@@ -2,18 +2,18 @@
 
 ## Goal and current scope
 
-The goal is to fetch public Alza Dny listings without a browser, parse products and coupon prices, and eventually store price changes. The user chose **probe only for now**. No remote storage or schedule is active.
+The goal is to fetch public Alza Dny listings without a browser, parse products and coupon prices, and eventually store price changes. A permanent probe Worker and D1 database are set up. A one-time experiment stored 24 anonymous products in a disposable probe table. No production ingestion or schedule is active.
 
 ## Working Cloudflare probe
 
-`cloudflare/probe.mjs` is a Cloudflare Worker. It fetches `https://www.alza.cz/robots.txt`, checks the rules for its research user agent, then fetches one listing page and runs the existing parser in `src/parser.ts`. It returns status and parse counts, not raw HTML or product data.
+`cloudflare/probe.mjs` is a Cloudflare Worker at `https://alza-dny-fetch-probe.vitroid05.workers.dev`. Its `/` and `/health` routes check the D1 binding with `SELECT 1`. Its `/probe` route fetches `https://www.alza.cz/robots.txt`, checks the rules for its research user agent, then fetches one listing page and runs the existing parser in `src/parser.ts`. It returns status and parse counts, not raw HTML or product data.
 
-On 17 October 2026, a deployed Worker returned HTTP 200 for both `robots.txt` and `https://www.alza.cz/alza-dny/e40.htm`. The page identified itself as logged out. The parser found 24 cards, parsed 24 products and 19 category links, and reported no errors. The deployed Worker ran in a temporary Cloudflare account. That deployment expires if it is not claimed; the source and Wrangler configuration remain in `cloudflare/`.
+On 17 October 2026, the permanent Worker returned HTTP 200 for both `robots.txt` and `https://www.alza.cz/alza-dny/e40.htm`. The page identified itself as logged out. The parser found 24 cards, parsed 24 products and 19 category links, and reported no errors. The `alza-dny` D1 database was created in the Eastern Europe region and bound to this Worker as `DB`. A temporary write route fetched the same page and stored all 24 validated products as JSON in `probe_products`, then was removed. A remote D1 query confirmed 24 distinct IDs and readable coupon and price fields. `cloudflare/probe-schema.sql` records the probe table schema; there is no production schema yet.
 
-To repeat the probe without Cloudflare login:
+To redeploy from a signed-in Wrangler session:
 
 ```bash
-npx --yes wrangler@latest deploy --config cloudflare/wrangler.jsonc --temporary
+npx --yes wrangler@latest deploy --config cloudflare/wrangler.jsonc
 ```
 
 ## Earlier fetch results
@@ -26,4 +26,4 @@ npx --yes wrangler@latest deploy --config cloudflare/wrangler.jsonc --temporary
 
 The local CLI in `src/cli.ts` can parse saved HTML or fetch one live page and import valid logged-out results into a local JSON catalog. `src/catalog.ts` deduplicates products and adds price observations only when price or coupon data changes. `npm run check` and `npm test` pass.
 
-If the user later requests persistent automation, first decide where data should live. Cloudflare D1 would keep fetching and storage on Cloudflare. Convex would require the Worker to send validated data to a protected Convex ingestion function. A permanent Cloudflare deployment and a schedule are still needed for either choice.
+If the user later requests persistent automation, add a D1 schema and ingestion logic, then measure a bounded pilot before choosing a schedule. The Nuxt frontend can be deployed to a separate Cloudflare Worker with access to the same D1 database. Neither the frontend nor a schedule exists yet.

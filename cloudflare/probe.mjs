@@ -31,9 +31,15 @@ function summary(response) {
 }
 
 export default {
-  async fetch(request) {
+  async fetch(request, env) {
     if (request.method !== 'GET') return new Response('Method not allowed', { status: 405 });
+    const { pathname } = new URL(request.url);
     try {
+      if (pathname === '/' || pathname === '/health') {
+        await env.DB.prepare('SELECT 1').first();
+        return Response.json({ status: 'ok', database: 'ok' });
+      }
+      if (pathname !== '/probe') return new Response('Not found', { status: 404 });
       const robots = await requestText(robotsUrl);
       if (robots.status !== 200 || robots.challenge) {
         return Response.json({ robots: summary(robots), page: null });

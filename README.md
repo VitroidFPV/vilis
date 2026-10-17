@@ -18,13 +18,13 @@ The live path uses Node's native HTTPS client with an honest research user agent
 
 ## Cloudflare Worker probe
 
-`cloudflare/probe.mjs` checks `robots.txt`, fetches one Alza Dny listing page, and runs the existing parser. It returns only status and parse counts. You can deploy it to a temporary Cloudflare account with:
+The permanent Worker is deployed at `https://alza-dny-fetch-probe.vitroid05.workers.dev`. Its `/` and `/health` routes verify the D1 binding without contacting Alza. The `/probe` route checks `robots.txt`, fetches one Alza Dny listing page, and runs the existing parser. It returns only status and parse counts. Deploy updates with:
 
 ```bash
-npx --yes wrangler@latest deploy --config cloudflare/wrangler.jsonc --temporary
+npx --yes wrangler@latest deploy --config cloudflare/wrangler.jsonc
 ```
 
-On 17 October 2026, the deployed Worker got HTTP 200 for both `robots.txt` and the listing page. It parsed 24 logged-out products and 19 category links with no errors. This is a probe only; it does not save data or run on a schedule. The temporary deployment expires unless claimed.
+On 17 October 2026, the permanent Worker got HTTP 200 for both `robots.txt` and the listing page. It parsed 24 logged-out products and 19 category links with no errors. The `alza-dny` D1 database exists in Cloudflare's Eastern Europe region and is bound as `DB`. A one-time fetch-and-write experiment stored 24 validated anonymous products as JSON in `probe_products`; its schema is in `cloudflare/probe-schema.sql`. The temporary write route was removed afterward. There is no production product schema or scheduled crawl.
 
 ## Saved HTML and checks
 
