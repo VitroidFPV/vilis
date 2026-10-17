@@ -1,4 +1,5 @@
 import { readFile, rename, writeFile } from "node:fs/promises"
+import { get } from "node:https"
 import { createRequire } from "node:module"
 import { fileURLToPath } from "node:url"
 import * as cheerio from "cheerio"
@@ -9,7 +10,7 @@ const robotsParser: (
 ) => { isAllowed: (url: string, userAgent: string) => boolean | undefined } =
 	createRequire(import.meta.url)("robots-parser")
 
-const catalogUrl = "https://www.alza.cz/en/catalog"
+const catalogUrl = "https://www.alza.cz/catalog"
 
 type CatalogLink = { name: string; url: string }
 type CatalogCategory = CatalogLink & { children: CatalogLink[] }
@@ -30,7 +31,7 @@ function isCatalogLink(value: unknown): value is CatalogLink {
 function validateCatalog(value: unknown): CatalogCategory[] {
 	if (!Array.isArray(value) || value.length < 15)
 		throw new Error(
-			"Catalog has fewer than 15 categories; keeping the existing snapshot",
+			`Catalog has ${Array.isArray(value) ? value.length : 0} categories; keeping the existing snapshot`,
 		)
 	let childCount = 0
 	const seen = new Set<string>()
@@ -81,7 +82,7 @@ function parseCatalog(html: string): CatalogCategory[] {
 		)
 		.first()
 	const grid = main.children("div").first()
-	const categories: CatalogCategory[] = []
+	let categories: CatalogCategory[] = []
 	const seen = new Set<string>()
 
 	grid.children("div").each((_, element) => {
@@ -106,6 +107,96 @@ function parseCatalog(html: string): CatalogCategory[] {
 			})
 		categories.push({ ...category, children })
 	})
+	if (
+		categories.length < 15 ||
+		categories.reduce(
+			(total, category) => total + category.children.length,
+			0,
+		) < 100
+	) {
+		// Alza streams most category links in Next.js flight data instead of initial HTML.
+		const flightCategories: CatalogCategory[] = []
+		const seenRoots = new Set<string>()
+		const subcategoryAnchors: { key: string; url: string }[] = []
+		const seenSubcategories = new Set<string>()
+		let stream = ""
+		$("script").each((_, element) => {
+			const script = $(element).html() ?? ""
+			const match = /self\.__next_f\.push\((\[1,"(?:\\.|[^"\\])*"\])\)/.exec(
+				script,
+			)
+			if (!match) return
+			const payload: unknown = JSON.parse(match[1])
+			if (Array.isArray(payload) && typeof payload[1] === "string")
+				stream += payload[1]
+		})
+
+		function heading(value: unknown): string | null {
+			if (Array.isArray(value)) {
+				if (value[0] === "$" && value[1] === "h2") {
+					const name = value[3]?.children
+					return typeof name === "string" ? name.trim() : null
+				}
+				for (const nested of value) {
+					const name = heading(nested)
+					if (name) return name
+				}
+			} else if (value && typeof value === "object") {
+				for (const nested of Object.values(value)) {
+					const name = heading(nested)
+					if (name) return name
+				}
+			}
+			return null
+		}
+
+		function collect(value: unknown): void {
+			if (Array.isArray(value)) {
+				if (value[0] === "$" && value[1] === "a") {
+					const url = value[3]?.href
+					const key = value[2]
+					if (typeof url === "string") {
+						if (typeof key === "string" && key.startsWith("subcat-")) {
+							if (!seenSubcategories.has(key)) {
+								seenSubcategories.add(key)
+								subcategoryAnchors.push({ key, url })
+							}
+						} else {
+							const name = heading(value[3]?.children)
+							if (name && !seenRoots.has(url)) {
+								seenRoots.add(url)
+								flightCategories.push({ name, url, children: [] })
+							}
+						}
+					}
+				}
+				for (const nested of value) collect(nested)
+			} else if (value && typeof value === "object") {
+				for (const nested of Object.values(value)) collect(nested)
+			}
+		}
+
+		for (const line of stream.split("\n")) {
+			if (!line.includes("subcat-") && !line.includes("h2")) continue
+			const record = /^[0-9a-f]+:(.*)$/i.exec(line)
+			if (record) collect(JSON.parse(record[1]))
+		}
+		const parents = [...flightCategories].sort(
+			(a, b) => b.name.length - a.name.length,
+		)
+		for (const { key, url } of subcategoryAnchors) {
+			const parent = parents.find((category) =>
+				key.startsWith(`subcat-${category.name}-`),
+			)
+			if (parent) {
+				parent.children.push({
+					name: key.slice(`subcat-${parent.name}-`.length).trim(),
+					url,
+				})
+			}
+		}
+		categories = flightCategories
+	}
 
 	return validateCatalog(categories)
 }
@@ -116,24 +207,50 @@ const outputPath = fileURLToPath(
 	new URL("../app/data/catalog.json", import.meta.url),
 )
 
-async function requestText(url: string) {
-	const response = await fetch(url, {
-		headers: { "User-Agent": userAgent, Accept: "text/html,text/plain" },
-		signal: AbortSignal.timeout(30_000),
+function requestText(url: URL): Promise<{
+	status: number
+	challenge: boolean
+	contentType: string
+	body: string
+}> {
+	return new Promise((resolve, reject) => {
+		const request = get(
+			url,
+			{
+				headers: {
+					"User-Agent": userAgent,
+					"Sec-Fetch-Site": "none",
+				},
+			},
+			(response) => {
+				const chunks: Buffer[] = []
+				let bytes = 0
+				response.on("data", (chunk: Buffer) => {
+					bytes += chunk.length
+					if (bytes > 5_000_000)
+						request.destroy(new Error("Response exceeded 5 MB"))
+					else chunks.push(chunk)
+				})
+				response.on("error", reject)
+				response.on("end", () =>
+					resolve({
+						status: response.statusCode ?? 0,
+						challenge: response.headers["cf-mitigated"] === "challenge",
+						contentType: String(response.headers["content-type"] ?? ""),
+						body: Buffer.concat(chunks).toString("utf8"),
+					}),
+				)
+			},
+		)
+		request.setTimeout(15_000, () =>
+			request.destroy(new Error("Request timed out")),
+		)
+		request.on("error", reject)
 	})
-	const body = await response.text()
-	const bytes = new TextEncoder().encode(body).byteLength
-	if (bytes > 5_000_000) throw new Error("Response exceeded 5 MB")
-	return {
-		status: response.status,
-		challenge: response.headers.get("cf-mitigated") === "challenge",
-		contentType: response.headers.get("content-type") ?? "",
-		body,
-	}
 }
 
 async function fetchCatalog() {
-	const robots = await requestText(robotsUrl)
+	const robots = await requestText(new URL(robotsUrl))
 	if (robots.status !== 200 || robots.challenge)
 		throw new Error(`Could not check Alza robots.txt (HTTP ${robots.status})`)
 	if (
@@ -142,7 +259,7 @@ async function fetchCatalog() {
 	)
 		throw new Error("Catalog fetch disallowed by robots.txt")
 
-	const page = await requestText(catalogUrl)
+	const page = await requestText(new URL(catalogUrl))
 	if (
 		page.status !== 200 ||
 		page.challenge ||

@@ -25,9 +25,9 @@ bun run deploy --dry-run
 
 ## Refresh the category sidebar
 
-Run `bun run catalog:update` to fetch `https://www.alza.cz/en/catalog` locally and update `app/data/catalog.json`. Like the fixed-domain probe, the script checks Alza's `robots.txt`, then checks the response status, challenge header, content type, and size before parsing. It rejects incomplete data and leaves the existing snapshot intact. Review the JSON diff before committing it.
+Run `bun run catalog:update` to fetch `https://www.alza.cz/en/catalog` locally and update `app/data/catalog.json`. The script uses the native HTTPS request pattern from the original local product scraper, checks Alza's `robots.txt` and the response, then reads the two-level catalog from the page's streamed data. It rejects incomplete data and leaves the existing snapshot intact. Review the JSON diff before committing it.
 
-Alza may return HTTP 403 to local scripted requests, as it did in this environment. In that case, open the catalog URL in a browser, save the page as HTML, and run `bun run catalog:update --from-file /path/to/catalog.html`. The saved HTML is ignored by Git; do not commit browser-saved pages because they may contain visitor identifiers.
+If Alza blocks the direct request, open the catalog URL in a browser, save the page as HTML, and run `bun run catalog:update --from-file /path/to/catalog.html`. The saved HTML is ignored by Git; do not commit browser-saved pages because they may contain visitor identifiers.
 
 To deploy the frontend manually after signing in with Wrangler, run `bun run deploy`. To deploy the probe, run Wrangler with `--config cloudflare/wrangler.jsonc`.
 
