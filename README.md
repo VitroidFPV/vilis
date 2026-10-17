@@ -1,4 +1,4 @@
-# Alza Dny
+# Vilis
 
 Work in progress for a site that displays public Alza Dny deals and price history. The frontend is a Nuxt app configured for Cloudflare Workers. Cloudflare D1 is planned for products and price observations; production ingestion is not implemented yet.
 
@@ -25,7 +25,7 @@ bun run deploy --dry-run
 
 To deploy the frontend manually after signing in with Wrangler, run `bun run deploy`. To deploy the probe, run Wrangler with `--config cloudflare/wrangler.jsonc`.
 
-For automatic frontend deploys, connect this repository to a new Worker named `alza-dny` in Cloudflare Workers Builds. Use the repository root as the root directory, `bun run build` as the build command, and `bun run deploy` as the deploy command. Set the build variable `BUN_VERSION=1.4.2`, matching `package.json` and `bun.lock`. Cloudflare installs dependencies before running the build command.
+For automatic frontend deploys, connect this repository to a new Worker named `vilis` in Cloudflare Workers Builds. Use the repository root as the root directory, `bun run build` as the build command, and `bun run deploy` as the deploy command. Set the build variable `BUN_VERSION=1.4.2`, matching `package.json` and `bun.lock`. Cloudflare installs dependencies before running the build command.
 
 The frontend Worker is separate from `alza-dny-fetch-probe`; do not connect the probe Worker to this frontend build configuration.
 

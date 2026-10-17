@@ -4,7 +4,7 @@ export default defineNuxtConfig({
 	nitro: { preset: "cloudflare_module" },
 	colorMode: {
 		preference: "system",
-		storageKey: "alza-color-mode",
+		storageKey: "vilis-color-mode",
 	},
 	compatibilityDate: "2025-07-15",
 	devtools: { enabled: true },

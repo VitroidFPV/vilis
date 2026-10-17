@@ -3,7 +3,7 @@
   "configVersion": 0,
   "workspaces": {
     "": {
-      "name": "alza-dny",
+      "name": "vilis",
       "dependencies": {
         "@nuxt/eslint": "1.17.0",
         "@nuxt/ui": "^4.12.0",
