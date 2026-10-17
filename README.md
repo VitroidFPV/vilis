@@ -14,19 +14,21 @@ The Worker is at https://alza-dny-fetch-probe.vitroid05.workers.dev. The root ro
 
 ## Development
 
-Requires Node.js 22 or later:
+Requires Bun 1.4.2. Wrangler also uses Node.js locally; Cloudflare Workers Builds provides both runtimes.
 
 ```bash
-npm ci
-npm run check
-npm test
+bun install --frozen-lockfile
+bun run check
+bun run test
 ```
 
 To deploy the probe after signing in with Wrangler:
 
 ```bash
-npx --yes wrangler@latest deploy --config cloudflare/wrangler.jsonc
+bun run deploy:probe
 ```
+
+When connecting this repository to Workers Builds, set `BUN_VERSION=1.4.2` in its build variables and use the Bun lockfile for installation. This keeps the build on the same Bun version used locally.
 
 The ignored `research/` directory contains the original HTML snapshots and earlier investigation. Saved browser pages may contain visitor identifiers, so keep them out of Git.
 

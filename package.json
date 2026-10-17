@@ -2,9 +2,11 @@
   "name": "alza-dny",
   "private": true,
   "type": "module",
+  "packageManager": "bun@1.4.2",
   "scripts": {
     "check": "tsc --noEmit --project tsconfig.probe.json",
-    "test": "node --experimental-strip-types tests/parser.test.ts"
+    "test": "bun test",
+    "deploy:probe": "wrangler deploy --config cloudflare/wrangler.jsonc"
   },
   "dependencies": {
     "cheerio": "^1.2.0",
@@ -12,6 +14,7 @@
   },
   "devDependencies": {
     "@types/node": "^26.6.5",
-    "typescript": "^7.0.2"
+    "typescript": "^7.0.2",
+    "wrangler": "4.151.1"
   }
 }
