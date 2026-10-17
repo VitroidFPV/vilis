@@ -5,6 +5,15 @@ const activeIndex = ref<number | null>(null)
 const activeCategory = computed(() =>
 	activeIndex.value === null ? null : categories[activeIndex.value],
 )
+
+function onNavLeave(event: MouseEvent) {
+	if (
+		event.clientY >=
+		(event.currentTarget as HTMLElement).getBoundingClientRect().bottom
+	) {
+		activeIndex.value = null
+	}
+}
 </script>
 
 <template>
@@ -13,7 +22,11 @@ const activeCategory = computed(() =>
 			<div class="h-12 w-full shrink-0"></div>
 			<div class="flex flex-1 gap-4 pl-4" @mouseleave="activeIndex = null">
 				<div class="w-64 shrink-0">
-					<nav aria-label="Categories" class="flex flex-col gap-1 self-start">
+					<nav
+						aria-label="Categories"
+						class="flex flex-col gap-1 self-start"
+						@mouseleave="onNavLeave"
+					>
 						<UButton
 							v-for="(category, index) in categories"
 							:key="category.url"
