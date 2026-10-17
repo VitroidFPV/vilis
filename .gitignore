@@ -1,0 +1,7 @@
+node_modules/
+research/
+*.html
+*.csv
+*-parsed.json
+catalog.json
+catalog.json.tmp

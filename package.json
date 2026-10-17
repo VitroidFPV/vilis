@@ -1,0 +1,18 @@
+{
+  "name": "alza-dny-local-probe",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "parse": "node --experimental-strip-types src/cli.ts",
+    "check": "tsc --noEmit",
+    "test": "node --experimental-strip-types tests/parser.test.ts"
+  },
+  "dependencies": {
+    "cheerio": "^1.2.0",
+    "robots-parser": "^3.0.1"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.5",
+    "typescript": "^7.0.2"
+  }
+}
