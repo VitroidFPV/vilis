@@ -4,7 +4,7 @@ Work in progress for a site that displays public Alza Dny deals and price histor
 
 ## What exists
 
-- The Nuxt frontend currently displays a static category menu. Its Worker configuration is in the root `wrangler.jsonc` and does not yet have a D1 binding.
+- The Nuxt frontend displays a checked-in snapshot of Alza's English catalog categories. Its Worker configuration is in the root `wrangler.jsonc` and does not yet have a D1 binding.
 - `src/parser.ts` parses Alza Dny listing HTML into validated products and category links, and reports whether the page is logged out.
 - `cloudflare/probe.mjs` is a deployed, single-page fetch probe. `/health` checks its D1 binding; `/probe` checks `robots.txt`, fetches one listing page, and returns parse counts. It does not store data.
 - The `alza-dny` D1 database is bound to the probe as `DB`. A one-time experiment left 24 validated anonymous products in a disposable `probe_products` table. There is no production schema, ingestion job, or cron trigger.
@@ -22,6 +22,12 @@ bun install --frozen-lockfile
 bun run build
 bun run deploy --dry-run
 ```
+
+## Refresh the category sidebar
+
+Run `bun run catalog:update` to fetch `https://www.alza.cz/en/catalog` locally and update `app/data/catalog.json`. Like the fixed-domain probe, the script checks Alza's `robots.txt`, then checks the response status, challenge header, content type, and size before parsing. It rejects incomplete data and leaves the existing snapshot intact. Review the JSON diff before committing it.
+
+Alza may return HTTP 403 to local scripted requests, as it did in this environment. In that case, open the catalog URL in a browser, save the page as HTML, and run `bun run catalog:update --from-file /path/to/catalog.html`. The saved HTML is ignored by Git; do not commit browser-saved pages because they may contain visitor identifiers.
 
 To deploy the frontend manually after signing in with Wrangler, run `bun run deploy`. To deploy the probe, run Wrangler with `--config cloudflare/wrangler.jsonc`.
 

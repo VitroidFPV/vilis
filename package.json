@@ -4,6 +4,7 @@
 	"private": true,
 	"packageManager": "bun@1.4.2",
 	"scripts": {
+		"catalog:update": "bun scripts/update-catalog.ts",
 		"build": "nuxt build",
 		"deploy": "wrangler deploy",
 		"dev": "nuxt dev",
@@ -23,7 +24,9 @@
 		"vue-router": "^5.4.0"
 	},
 	"devDependencies": {
+		"cheerio": "1.2.0",
 		"prettier": "3.9.10",
+		"robots-parser": "3.0.1",
 		"wrangler": "4.151.1"
 	}
 }
