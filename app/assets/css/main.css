@@ -12,6 +12,7 @@
 }
 
 .dark {
+  --ui-color-neutral-950: oklch(18% 0.005 285.823);
   --ui-text-highlighted: var(--ui-color-neutral-50);
   --ui-bg-inverted: var(--ui-color-neutral-50);
   --ui-border-inverted: var(--ui-color-neutral-50);
