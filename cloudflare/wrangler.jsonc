@@ -1,12 +1,12 @@
 {
-  "name": "alza-dny-fetch-probe",
-  "main": "./probe.mjs",
-  "compatibility_date": "2026-10-17",
-  "d1_databases": [
-    {
-      "binding": "DB",
-      "database_name": "alza-dny",
-      "database_id": "72a23338-8beb-4e33-98da-dea6c467fe5a"
-    }
-  ]
+	"name": "alza-dny-fetch-probe",
+	"main": "./probe.mjs",
+	"compatibility_date": "2026-10-17",
+	"d1_databases": [
+		{
+			"binding": "DB",
+			"database_name": "alza-dny",
+			"database_id": "72a23338-8beb-4e33-98da-dea6c467fe5a",
+		},
+	],
 }
