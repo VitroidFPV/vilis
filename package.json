@@ -1,20 +1,18 @@
 {
-  "name": "alza-dny",
-  "private": true,
+  "name": "alza",
   "type": "module",
+  "private": true,
   "packageManager": "bun@1.4.2",
   "scripts": {
-    "check": "tsc --noEmit --project tsconfig.probe.json",
-    "test": "bun test",
-    "deploy:probe": "wrangler deploy --config cloudflare/wrangler.jsonc"
+    "build": "nuxt build",
+    "dev": "nuxt dev",
+    "generate": "nuxt generate",
+    "preview": "nuxt preview",
+    "postinstall": "nuxt prepare"
   },
   "dependencies": {
-    "cheerio": "^1.2.0",
-    "robots-parser": "^3.0.1"
-  },
-  "devDependencies": {
-    "@types/node": "^26.6.5",
-    "typescript": "^7.0.2",
-    "wrangler": "4.151.1"
+    "nuxt": "^4.6.1",
+    "vue": "^3.5.43",
+    "vue-router": "^5.4.0"
   }
 }
