@@ -5,3 +5,5 @@ research/
 *-parsed.json
 catalog.json
 catalog.json.tmp
+
+.env.local

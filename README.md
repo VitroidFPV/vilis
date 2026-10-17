@@ -14,7 +14,17 @@ npm run parse -- --url https://www.alza.cz/alza-dny/e40-p2.htm --state catalog.j
 
 Each command checks `robots.txt`, fetches one listing page, validates products and coupon prices, then imports them. Rerunning an unchanged page adds no duplicate products or price observations. `catalog.json` is ignored by Git. Without `--state`, the command prints parsed products and categories as JSON.
 
-The live path uses Node's native HTTPS client with an honest research user agent and `Sec-Fetch-Site: none`. In this environment it returned 24 valid, logged-out products from each of pages 1 and 2, giving 48 distinct products. Plain Node `fetch` still receives a Cloudflare challenge; the header-dependent HTTPS behavior may change. No scheduled crawl or Convex fetch has been verified yet.
+The live path uses Node's native HTTPS client with an honest research user agent and `Sec-Fetch-Site: none`. In this environment it returned 24 valid, logged-out products from each of pages 1 and 2, giving 48 distinct products. Plain Node `fetch` still receives a Cloudflare challenge; the header-dependent HTTPS behavior may change. No scheduled crawl is configured.
+
+## Cloudflare Worker probe
+
+`cloudflare/probe.mjs` checks `robots.txt`, fetches one Alza Dny listing page, and runs the existing parser. It returns only status and parse counts. You can deploy it to a temporary Cloudflare account with:
+
+```bash
+npx --yes wrangler@latest deploy --config cloudflare/wrangler.jsonc --temporary
+```
+
+On 17 October 2026, the deployed Worker got HTTP 200 for both `robots.txt` and the listing page. It parsed 24 logged-out products and 19 category links with no errors. This is a probe only; it does not save data or run on a schedule. The temporary deployment expires unless claimed.
 
 ## Saved HTML and checks
 
