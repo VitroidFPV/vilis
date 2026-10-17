@@ -3,7 +3,10 @@ research/
 *.html
 *.csv
 *-parsed.json
-catalog.json
-catalog.json.tmp
-
-.env.local
+.nuxt/
+.output/
+.data/
+.wrangler/
+.env
+.env.*
+!.env.example
