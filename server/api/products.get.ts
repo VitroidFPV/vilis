@@ -30,6 +30,7 @@ export default defineEventHandler(async (event) => {
 	const query = getQuery(event)
 	const page = query.page === undefined ? 1 : Number(query.page)
 	const limit = query.limit === undefined ? 24 : Number(query.limit)
+	const search = query.q === undefined ? "" : query.q
 	if (
 		!Number.isSafeInteger(page) ||
 		page < 1 ||
@@ -40,6 +41,10 @@ export default defineEventHandler(async (event) => {
 	) {
 		throw createError({ statusCode: 400, statusMessage: "Invalid pagination" })
 	}
+	if (typeof search !== "string" || search.trim().length > 100) {
+		throw createError({ statusCode: 400, statusMessage: "Invalid search" })
+	}
+	const term = search.trim()
 	const db = (event.context.cloudflare as { env: { DB: Database } } | undefined)
 		?.env.DB
 	if (!db)
@@ -54,7 +59,19 @@ export default defineEventHandler(async (event) => {
 		 ORDER BY completed_at DESC LIMIT 1`,
 		)
 		.first<ImportRun>()
-	if (!run) return { run: null, products: [], page, limit }
+	if (!run) return { run: null, products: [], total: 0, page, limit }
+	const filter = term
+		? " AND (instr(lower(p.name), lower(?)) > 0 OR instr(lower(p.order_code), lower(?)) > 0)"
+		: ""
+	const bindings = term ? [run.id, term, term] : [run.id]
+	const count = await db
+		.prepare(
+			`SELECT count(*) AS total
+		 FROM price_observations o JOIN products p ON p.alza_id = o.alza_id
+		 WHERE o.run_id = ?${filter}`,
+		)
+		.bind(...bindings)
+		.first<{ total: number }>()
 	const { results } = await db
 		.prepare(
 			`SELECT p.alza_id AS alzaId, p.order_code AS orderCode, p.name, p.url,
@@ -63,9 +80,9 @@ export default defineEventHandler(async (event) => {
 		 o.price_after_coupon AS priceAfterCoupon, o.compare_price AS comparePrice,
 		 o.observed_at AS observedAt
 		 FROM price_observations o JOIN products p ON p.alza_id = o.alza_id
-		 WHERE o.run_id = ? ORDER BY p.name, p.alza_id LIMIT ? OFFSET ?`,
+		 WHERE o.run_id = ?${filter} ORDER BY p.name, p.alza_id LIMIT ? OFFSET ?`,
 		)
-		.bind(run.id, limit, (page - 1) * limit)
+		.bind(...bindings, limit, (page - 1) * limit)
 		.all<ProductRow>()
-	return { run, products: results, page, limit }
+	return { run, products: results, total: count?.total ?? 0, page, limit }
 })

@@ -1,6 +1,6 @@
 # Vilis
 
-Work in progress for a site that displays public Alza Dny deals and price history. The frontend is a Nuxt app configured for Cloudflare Workers. Cloudflare D1 is planned for products and price observations; production ingestion is not implemented yet.
+Work in progress for a site that displays public Alza Dny deals and price history. The frontend is a Nuxt app configured for Cloudflare Workers. Cloudflare D1 stores imported products and price observations; automated ingestion is not implemented yet.
 
 ## What exists
 
@@ -56,7 +56,7 @@ bun run import:deals upload --remote
 bun run import:deals upload --sample --remote
 ```
 
-The `upload` command sends batches through Wrangler and is safe to rerun after an interrupted upload. An import run is marked complete only after every batch succeeds; its `scope` distinguishes a sample from a full crawl. Pass `--run-id ID` to upload an older saved run; the ID appears in the crawl completion message and `.data/deals-import/latest.json`. The tables are `products`, `price_observations`, and `import_runs`; the old `probe_products` table is untouched. `/api/products` returns the latest completed run with paginated product rows.
+The `upload` command sends batches through Wrangler and is safe to rerun after an interrupted upload. An import run is marked complete only after every batch succeeds; its `scope` distinguishes a sample from a full crawl. Pass `--run-id ID` to upload an older saved run; the ID appears in the crawl completion message and `.data/deals-import/latest.json`. The tables are `products`, `price_observations`, and `import_runs`; the old `probe_products` table is untouched. `/api/products` returns the latest completed run with paginated product rows. Pass `q` to search product names and order codes; `total` counts matching products for pagination.
 
 To deploy the frontend manually after signing in with Wrangler, run `bun run deploy`. To deploy the probe, run Wrangler with `--config cloudflare/wrangler.jsonc`.
 
@@ -68,4 +68,4 @@ The ignored `research/` directory contains the original HTML snapshots and earli
 
 ## Next work
 
-Connect the category navigation and search to the product API, then continue the full crawl when desired. Keep fetching manual until a permitted, reliable update schedule is established.
+Connect the category navigation to the product API, then continue the full crawl when desired. Keep fetching manual until a permitted, reliable update schedule is established.
