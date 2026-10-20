@@ -25,7 +25,7 @@ const wrangler = fileURLToPath(
 	new URL("../node_modules/.bin/wrangler", import.meta.url),
 )
 const wranglerConfig = fileURLToPath(
-	new URL("../cloudflare/wrangler.jsonc", import.meta.url),
+	new URL("../wrangler.jsonc", import.meta.url),
 )
 
 type Manifest = {

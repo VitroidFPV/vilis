@@ -7,6 +7,14 @@
 	},
 	"compatibility_date": "2026-10-17",
 	"compatibility_flags": ["nodejs_compat"],
+	"d1_databases": [
+		{
+			"binding": "DB",
+			"database_name": "alza-dny",
+			"database_id": "72a23338-8beb-4e33-98da-dea6c467fe5a",
+			"migrations_dir": "cloudflare/migrations",
+		},
+	],
 	"observability": {
 		"enabled": true,
 	},
