@@ -14,5 +14,20 @@ export default defineAppConfig({
 				variant: "soft",
 			},
 		},
+		input: {
+			defaultVariants: {
+				variant: "soft",
+			}
+		},
+		select: {
+			defaultVariants: {
+				variant: "soft"
+			}
+		},
+		selectMenu: {
+			defaultVariants: {
+				variant: "soft"
+			}
+		}
 	},
 })

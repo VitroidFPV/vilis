@@ -31,6 +31,10 @@ export default defineEventHandler(async (event) => {
 	const page = query.page === undefined ? 1 : Number(query.page)
 	const limit = query.limit === undefined ? 24 : Number(query.limit)
 	const search = query.q === undefined ? "" : query.q
+	const sort = query.sort === undefined ? "name" : query.sort
+	const minDiscount =
+		query.minDiscount === undefined ? 0 : Number(query.minDiscount)
+	const maxPrice = query.maxPrice === undefined ? 0 : Number(query.maxPrice)
 	if (
 		!Number.isSafeInteger(page) ||
 		page < 1 ||
@@ -43,6 +47,24 @@ export default defineEventHandler(async (event) => {
 	}
 	if (typeof search !== "string" || search.trim().length > 100) {
 		throw createError({ statusCode: 400, statusMessage: "Invalid search" })
+	}
+	const sortOrders: Record<string, string> = {
+		name: "p.name ASC, p.alza_id ASC",
+		discount: "o.discount_pct DESC, p.alza_id ASC",
+		priceAsc: "o.price_after_coupon ASC, p.alza_id ASC",
+		priceDesc: "o.price_after_coupon DESC, p.alza_id ASC",
+	}
+	if (typeof sort !== "string" || !Object.hasOwn(sortOrders, sort)) {
+		throw createError({ statusCode: 400, statusMessage: "Invalid sort" })
+	}
+	if (
+		!Number.isSafeInteger(minDiscount) ||
+		minDiscount < 0 ||
+		minDiscount > 100 ||
+		!Number.isSafeInteger(maxPrice) ||
+		maxPrice < 0
+	) {
+		throw createError({ statusCode: 400, statusMessage: "Invalid filters" })
 	}
 	const term = search.trim()
 	const db = (event.context.cloudflare as { env: { DB: Database } } | undefined)
@@ -60,10 +82,23 @@ export default defineEventHandler(async (event) => {
 		)
 		.first<ImportRun>()
 	if (!run) return { run: null, products: [], total: 0, page, limit }
-	const filter = term
-		? " AND (instr(lower(p.name), lower(?)) > 0 OR instr(lower(p.order_code), lower(?)) > 0)"
-		: ""
-	const bindings = term ? [run.id, term, term] : [run.id]
+	const filters: string[] = []
+	const bindings: (string | number)[] = [run.id]
+	if (term) {
+		filters.push(
+			"(instr(lower(p.name), lower(?)) > 0 OR instr(lower(p.order_code), lower(?)) > 0)",
+		)
+		bindings.push(term, term)
+	}
+	if (minDiscount) {
+		filters.push("o.discount_pct >= ?")
+		bindings.push(minDiscount)
+	}
+	if (maxPrice) {
+		filters.push("o.price_after_coupon <= ?")
+		bindings.push(maxPrice)
+	}
+	const filter = filters.length ? ` AND ${filters.join(" AND ")}` : ""
 	const count = await db
 		.prepare(
 			`SELECT count(*) AS total
@@ -80,7 +115,7 @@ export default defineEventHandler(async (event) => {
 		 o.price_after_coupon AS priceAfterCoupon, o.compare_price AS comparePrice,
 		 o.observed_at AS observedAt
 		 FROM price_observations o JOIN products p ON p.alza_id = o.alza_id
-		 WHERE o.run_id = ?${filter} ORDER BY p.name, p.alza_id LIMIT ? OFFSET ?`,
+			WHERE o.run_id = ?${filter} ORDER BY ${sortOrders[sort]} LIMIT ? OFFSET ?`,
 		)
 		.bind(...bindings, limit, (page - 1) * limit)
 		.all<ProductRow>()

@@ -7,6 +7,32 @@ const activeCategory = computed(() =>
 	activeIndex.value === null ? null : categories[activeIndex.value],
 )
 const productPage = ref(1)
+const sortBy = ref("name")
+const minDiscount = ref("0")
+const maxPrice = ref("0")
+const sortOptions = [
+	{ label: "Řadit: Podle názvu", value: "name" },
+	{ label: "Řadit: Největší sleva", value: "discount" },
+	{ label: "Řadit: Nejnižší cena", value: "priceAsc" },
+	{ label: "Řadit: Nejvyšší cena", value: "priceDesc" },
+]
+const discountOptions = [
+	{ label: "Sleva: Libovolná", value: "0" },
+	{ label: "Sleva: Alespoň 20 %", value: "20" },
+	{ label: "Sleva: Alespoň 30 %", value: "30" },
+	{ label: "Sleva: Alespoň 40 %", value: "40" },
+	{ label: "Sleva: Alespoň 50 %", value: "50" },
+]
+const priceOptions = [
+	{ label: "Cena: Libovolná", value: "0" },
+	{ label: "Cena: Do 1 000 Kč", value: "1000" },
+	{ label: "Cena: Do 5 000 Kč", value: "5000" },
+	{ label: "Cena: Do 10 000 Kč", value: "10000" },
+	{ label: "Cena: Do 20 000 Kč", value: "20000" },
+]
+const hasActiveFilters = computed(
+	() => minDiscount.value !== "0" || maxPrice.value !== "0",
+)
 const searchInput = ref("")
 const searchTerm = ref("")
 const searchForm = ref<HTMLFormElement | null>(null)
@@ -30,13 +56,28 @@ const {
 	status: dealsStatus,
 	error: dealsError,
 } = await useFetch("/api/products", {
-	query: { page: productPage, q: searchTerm },
+	query: {
+		page: productPage,
+		q: searchTerm,
+		sort: sortBy,
+		minDiscount,
+		maxPrice,
+	},
 })
 const currency = new Intl.NumberFormat("cs-CZ", {
 	style: "currency",
 	currency: "CZK",
 	maximumFractionDigits: 0,
 })
+
+watch([sortBy, minDiscount, maxPrice], () => {
+	productPage.value = 1
+})
+
+function clearFilters() {
+	minDiscount.value = "0"
+	maxPrice.value = "0"
+}
 
 watch(searchInput, (value, _oldValue, onCleanup) => {
 	const term = value.trim()
@@ -87,11 +128,22 @@ onBeforeUnmount(() =>
 
 function onNavLeave(event: MouseEvent) {
 	if (
+		window.matchMedia("(min-width: 1024px)").matches &&
 		event.clientY >=
-		(event.currentTarget as HTMLElement).getBoundingClientRect().bottom
+			(event.currentTarget as HTMLElement).getBoundingClientRect().bottom
 	) {
 		activeIndex.value = null
 	}
+}
+
+function onCategoryEnter(index: number) {
+	if (window.matchMedia("(min-width: 1024px)").matches)
+		activeIndex.value = index
+}
+
+function onCategoryClick(index: number) {
+	if (!window.matchMedia("(min-width: 1024px)").matches)
+		activeIndex.value = activeIndex.value === index ? null : index
 }
 
 function submitSearch() {
@@ -109,20 +161,24 @@ function clearSearch() {
 <template>
 	<UApp :locale="cs">
 		<main class="min-h-screen flex flex-col bg-neutral-950">
-			<div class="p-2 pl-4 w-full shrink-0 nav flex">
-				<div class="gap-2 items-center flex w-64 shrink-0">
+			<div
+				class="relative flex w-full shrink-0 flex-wrap items-center gap-2 p-2 pl-4 lg:flex-nowrap"
+			>
+				<div class="flex w-full shrink-0 items-center gap-2 lg:w-48 xl:w-64">
 					<img src="/favicon.svg" class="size-6" />
 					<span class="text-primary-500 font-semibold mr-2">Vilis</span>
 					<span class="text-neutral-500">Alza Slevy</span>
 				</div>
-				<div class="flex w-full items-center">
+				<div
+					class="flex min-w-0 w-full flex-wrap items-center gap-2 lg:w-auto lg:flex-1 lg:flex-nowrap"
+				>
 					<form
 						ref="searchForm"
 						role="search"
-						class="relative"
+						class="relative w-full sm:w-auto lg:shrink-0"
 						@submit.prevent="submitSearch"
 					>
-						<UFieldGroup>
+						<UFieldGroup class="w-full">
 							<UInput
 								v-model="searchInput"
 								placeholder="Hledat slevy"
@@ -130,7 +186,7 @@ function clearSearch() {
 								aria-controls="search-suggestions"
 								:aria-expanded="searchOpen && !!searchInput.trim()"
 								maxlength="100"
-								class="min-w-md"
+								class="w-full sm:w-64 lg:w-52 xl:w-72 2xl:w-96"
 								@focus="searchOpen = !!searchInput.trim()"
 								@keydown.esc="searchOpen = false"
 							>
@@ -149,7 +205,7 @@ function clearSearch() {
 							<UButton
 								icon="i-lucide-search"
 								color="neutral"
-								variant="subtle"
+								variant="soft"
 								type="submit"
 								aria-label="Hledat"
 							/>
@@ -233,21 +289,60 @@ function clearSearch() {
 							</div>
 						</div>
 					</form>
-					<div>
-						<!-- filtering options -->
+					<div
+						class="flex w-full min-w-0 items-center gap-2 lg:w-auto lg:flex-none"
+						aria-label="Řazení a filtry"
+					>
+						<div
+							class="flex min-w-0 flex-1 items-center gap-2 overflow-x-auto lg:flex-none lg:overflow-visible"
+						>
+							<USelect
+								v-model="sortBy"
+								:items="sortOptions"
+								aria-label="Řadit produkty"
+								class="min-w-44 shrink-0 lg:w-32 lg:min-w-0 xl:w-auto xl:min-w-44"
+							/>
+							<USelect
+								v-model="minDiscount"
+								:items="discountOptions"
+								aria-label="Minimální sleva"
+								class="min-w-44 shrink-0 lg:w-32 lg:min-w-0 xl:w-auto xl:min-w-44"
+							/>
+							<USelect
+								v-model="maxPrice"
+								:items="priceOptions"
+								aria-label="Maximální cena"
+								class="min-w-44 shrink-0 lg:w-32 lg:min-w-0 xl:w-auto xl:min-w-44"
+							/>
+						</div>
+						<UButton
+							v-if="hasActiveFilters"
+							icon="i-lucide-x"
+							aria-label="Vymazat filtry"
+							title="Vymazat filtry"
+							color="neutral"
+							variant="ghost"
+							class="shrink-0"
+							@click="clearFilters"
+						/>
 					</div>
 				</div>
-				<div class="flex gap-2 items-center justify-end">
+				<div
+					class="absolute right-2 top-2 flex items-center justify-end gap-2 lg:static"
+				>
 					<UModal>
 						<UButton icon="i-lucide-settings" color="neutral"></UButton>
 					</UModal>
 				</div>
 			</div>
-			<div class="flex flex-1 gap-1 pl-4" @mouseleave="activeIndex = null">
-				<div class="w-64 shrink-0 pt-4">
+			<div
+				class="flex flex-1 flex-col gap-1 pl-4 lg:flex-row"
+				@mouseleave="activeIndex = null"
+			>
+				<div class="w-full min-w-0 pt-2 lg:w-64 lg:shrink-0 lg:pt-4">
 					<nav
 						aria-label="Kategorie"
-						class="flex flex-col gap-1 self-start"
+						class="flex gap-1 overflow-x-auto lg:flex-col lg:overflow-visible"
 						@mouseleave="onNavLeave"
 					>
 						<UButton
@@ -257,11 +352,11 @@ function clearSearch() {
 							:color="activeIndex === index ? 'primary' : 'neutral'"
 							:variant="activeIndex === index ? 'soft' : 'ghost'"
 							trailing-icon="i-lucide-chevron-right"
-							block
-							class="justify-between text-left"
+							class="w-auto shrink-0 justify-between whitespace-nowrap text-left lg:w-full lg:shrink"
 							:aria-expanded="activeIndex === index"
 							aria-controls="subcategories"
-							@mouseenter="activeIndex = index"
+							@mouseenter="onCategoryEnter(index)"
+							@click="onCategoryClick(index)"
 						/>
 					</nav>
 				</div>
@@ -297,8 +392,8 @@ function clearSearch() {
 						</p>
 						<p v-else-if="!deals?.products.length" class="text-neutral-400">
 							{{
-								searchTerm
-									? `Pro „${searchTerm}“ nebyly nalezeny žádné slevy.`
+								searchTerm || hasActiveFilters
+									? "Žádné slevy neodpovídají zadanému hledání a filtrům."
 									: "Zatím nebyly importovány žádné slevy."
 							}}
 						</p>
@@ -373,9 +468,17 @@ function clearSearch() {
 					<UCard
 						v-if="activeCategory"
 						id="subcategories"
-						class="absolute inset-y-1 left-1 w-xl max-w-[calc(100%-0.5rem)] overflow-y-auto rounded-xl"
+						class="mb-4 max-w-full rounded-xl lg:absolute lg:inset-y-1 lg:left-1 lg:mb-0 lg:w-xl lg:max-w-[calc(100%-0.5rem)] lg:overflow-y-auto"
 						@mouseleave="activeIndex = null"
 					>
+						<UButton
+							icon="i-lucide-x"
+							aria-label="Zavřít podkategorie"
+							color="neutral"
+							variant="ghost"
+							class="float-right lg:hidden"
+							@click="activeIndex = null"
+						/>
 						<h2 class="mb-5 font-semibold">
 							{{ activeCategory.name }}
 						</h2>
