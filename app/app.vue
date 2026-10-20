@@ -70,6 +70,14 @@ const currency = new Intl.NumberFormat("cs-CZ", {
 	currency: "CZK",
 	maximumFractionDigits: 0,
 })
+const colorMode = useColorMode()
+const priceTiers = ["Basic", "Bronze", "Silver", "Gold", "ISIC", "B2B"] as const
+const selectedPriceTiers = ref<string[]>(["Basic"])
+const themeOptions = [
+	{ label: "Podle zařízení", value: "system" },
+	{ label: "Světlý", value: "light" },
+	{ label: "Tmavý", value: "dark" },
+]
 
 watch([sortBy, minDiscount, maxPrice], () => {
 	productPage.value = 1
@@ -172,7 +180,7 @@ function clearSearch() {
 <template>
 	<UApp :locale="cs">
 		<main
-			class="min-h-screen flex flex-col bg-neutral-950 pb-[calc(5rem+env(safe-area-inset-bottom))] lg:pb-0"
+			class="min-h-screen flex flex-col bg-neutral-50 text-neutral-900 dark:bg-neutral-950 dark:text-neutral-50 pb-[calc(5rem+env(safe-area-inset-bottom))] lg:pb-0"
 		>
 			<div
 				class="relative flex w-full shrink-0 flex-wrap items-center gap-2 p-2 pl-4 lg:flex-nowrap"
@@ -180,10 +188,14 @@ function clearSearch() {
 				<div class="flex w-full shrink-0 items-center gap-2 lg:w-48 xl:w-64">
 					<img src="/favicon.svg" class="size-6" />
 					<span class="text-primary-500 font-semibold mr-2">Vilis</span>
-					<h1 class="text-base font-normal text-neutral-400">Alza Slevy</h1>
+					<h1
+						class="text-base font-normal text-neutral-500 dark:text-neutral-400"
+					>
+						Alza Slevy
+					</h1>
 				</div>
 				<div
-					class="fixed inset-x-0 bottom-0 z-40 flex w-full min-w-0 flex-col gap-0 rounded-t-[20px] border-t border-neutral-700 bg-neutral-950 pt-3 pr-[max(16px,env(safe-area-inset-right))] pb-[calc(12px+env(safe-area-inset-bottom))] pl-[max(16px,env(safe-area-inset-left))] lg:static lg:z-auto lg:w-auto lg:flex-1 lg:flex-row lg:items-center lg:gap-2 lg:rounded-none lg:border-0 lg:bg-transparent lg:p-0"
+					class="fixed inset-x-0 bottom-0 z-40 flex w-full min-w-0 flex-col gap-0 rounded-t-[20px] border-t border-neutral-200 bg-neutral-50 pt-3 pr-[max(16px,env(safe-area-inset-right))] pb-[calc(12px+env(safe-area-inset-bottom))] pl-[max(16px,env(safe-area-inset-left))] dark:border-neutral-700 dark:bg-neutral-950 lg:static lg:z-auto lg:w-auto lg:flex-1 lg:flex-row lg:items-center lg:gap-2 lg:rounded-none lg:border-0 lg:bg-transparent lg:p-0"
 				>
 					<form
 						ref="searchForm"
@@ -254,9 +266,12 @@ function clearSearch() {
 							id="search-suggestions"
 							role="region"
 							aria-label="Návrhy hledání"
-							class="absolute max-h-[calc(100dvh-8rem-env(safe-area-inset-bottom))] overscroll-contain lg:max-h-[calc(100vh-4rem)] bottom-full left-0 z-50 mb-3 w-full overflow-y-auto rounded-2xl border border-neutral-700 bg-neutral-900 p-2 shadow-xl lg:bottom-auto lg:top-full lg:mb-0 lg:mt-2"
+							class="absolute max-h-[calc(100dvh-8rem-env(safe-area-inset-bottom))] overscroll-contain lg:max-h-[calc(100vh-4rem)] bottom-full left-0 z-50 mb-3 w-full overflow-y-auto rounded-2xl border border-neutral-200 bg-white p-2 shadow-xl dark:border-neutral-700 dark:bg-neutral-900 lg:bottom-auto lg:top-full lg:mb-0 lg:mt-2"
 						>
-							<p v-if="searchLoading" class="p-4 text-sm text-neutral-400">
+							<p
+								v-if="searchLoading"
+								class="p-4 text-sm text-neutral-500 dark:text-neutral-400"
+							>
 								Vyhledávání…
 							</p>
 							<p v-else-if="searchError" class="p-4 text-sm text-red-400">
@@ -264,7 +279,7 @@ function clearSearch() {
 							</p>
 							<p
 								v-else-if="!suggestions.length"
-								class="p-4 text-sm text-neutral-400"
+								class="p-4 text-sm text-neutral-500 dark:text-neutral-400"
 							>
 								Žádné odpovídající slevy.
 							</p>
@@ -275,7 +290,7 @@ function clearSearch() {
 									:href="product.url"
 									target="_blank"
 									rel="noopener noreferrer"
-									class="group flex items-center gap-3 rounded-xl border border-neutral-700 p-1 transition-colors duration-200 hover:border-primary-500/70 hover:bg-neutral-800/50 focus-visible:border-primary-500/70 focus-visible:bg-neutral-800/50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-400"
+									class="group flex items-center gap-3 rounded-xl border border-neutral-200 p-1 transition-colors duration-200 hover:border-primary-500/70 hover:bg-neutral-100 focus-visible:border-primary-500/70 focus-visible:bg-neutral-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-400 dark:border-neutral-700 dark:hover:bg-neutral-800/50 dark:focus-visible:bg-neutral-800/50"
 									@click="searchOpen = false"
 								>
 									<div
@@ -301,12 +316,13 @@ function clearSearch() {
 											<span class="font-bold">{{
 												currency.format(product.priceAfterCoupon)
 											}}</span>
-											<span class="text-xs text-neutral-400 line-through">{{
-												currency.format(product.priceWithoutCoupon)
-											}}</span>
+											<span
+												class="text-xs text-neutral-500 line-through dark:text-neutral-400"
+												>{{ currency.format(product.priceWithoutCoupon) }}</span
+											>
 										</div>
 										<div class="mt-1 flex items-center gap-2 text-xs">
-											<span class="text-neutral-300"
+											<span class="text-neutral-600 dark:text-neutral-300"
 												>-{{ product.discountPct }}%</span
 											>
 											<span class="font-semibold">{{
@@ -321,7 +337,7 @@ function clearSearch() {
 								</a>
 								<button
 									type="submit"
-									class="w-full rounded-lg px-3 py-2 text-left text-sm font-medium text-primary-400 hover:bg-neutral-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-400"
+									class="w-full rounded-lg px-3 py-2 text-left text-sm font-medium text-primary-700 hover:bg-neutral-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-400 dark:text-primary-400 dark:hover:bg-neutral-800"
 								>
 									Zobrazit výsledky ({{ suggestionTotal }})
 								</button>
@@ -339,7 +355,7 @@ function clearSearch() {
 						<div class="min-h-0 overflow-hidden lg:contents">
 							<div
 								id="browse-controls"
-								class="mb-3 flex max-h-[calc(100dvh-8rem-env(safe-area-inset-bottom))] w-full min-w-0 flex-col gap-3 overflow-y-auto overscroll-contain border-b border-neutral-700 pb-3 lg:mb-0 lg:max-h-none lg:w-auto lg:flex-1 lg:flex-row lg:items-center lg:gap-2 lg:overflow-visible lg:border-0 lg:pb-0"
+								class="mb-3 flex max-h-[calc(100dvh-8rem-env(safe-area-inset-bottom))] w-full min-w-0 flex-col gap-3 overflow-y-auto overscroll-contain border-b border-neutral-200 pb-3 dark:border-neutral-700 lg:mb-0 lg:max-h-none lg:w-auto lg:flex-1 lg:flex-row lg:items-center lg:gap-2 lg:overflow-visible lg:border-0 lg:pb-0"
 								aria-label="Řazení a filtry"
 							>
 								<div
@@ -379,7 +395,7 @@ function clearSearch() {
 										:ui="{ label: 'lg:hidden' }"
 										@click="clearFilters"
 									/>
-									<UModal title="Nastavení">
+									<UModal title="Nastavení" :ui="{ content: 'max-w-2xl' }">
 										<UButton
 											icon="i-lucide-settings"
 											label="Nastavení"
@@ -389,6 +405,129 @@ function clearSearch() {
 											class="ml-auto min-h-11 lg:min-h-0 lg:size-8 lg:justify-center lg:p-0"
 											:ui="{ label: 'lg:hidden' }"
 										/>
+										<template #body>
+											<div class="space-y-7 pb-2">
+												<section
+													aria-labelledby="language-heading"
+													class="grid gap-3 sm:grid-cols-[11rem_1fr] sm:gap-6"
+												>
+													<div>
+														<h2 id="language-heading" class="font-semibold">
+															Jazyk aplikace
+														</h2>
+														<p
+															class="mt-1 text-sm text-neutral-500 dark:text-neutral-400"
+														>
+															Texty rozhraní a formátování.
+														</p>
+													</div>
+													<div class="rounded-xl bg-muted p-4">
+														<div
+															class="flex items-center justify-between gap-3"
+														>
+															<span class="text-sm font-medium">Čeština</span>
+															<span
+																class="text-sm text-neutral-500 dark:text-neutral-400"
+																>Aktuální</span
+															>
+														</div>
+														<p
+															class="mt-2 text-sm text-neutral-500 dark:text-neutral-400"
+														>
+															Angličtina bude dostupná po překladu rozhraní.
+														</p>
+													</div>
+												</section>
+												<section
+													aria-labelledby="theme-heading"
+													class="grid gap-3 border-t border-neutral-200 pt-6 sm:grid-cols-[11rem_1fr] sm:gap-6 dark:border-neutral-700"
+												>
+													<div>
+														<h2 id="theme-heading" class="font-semibold">
+															Vzhled
+														</h2>
+														<p
+															class="mt-1 text-sm text-neutral-500 dark:text-neutral-400"
+														>
+															Přizpůsobte barvy aplikace.
+														</p>
+													</div>
+													<div
+														role="radiogroup"
+														aria-label="Barevný režim"
+														class="self-center rounded-xl bg-muted p-2"
+													>
+														<div class="grid grid-cols-3 gap-1">
+															<label
+																v-for="option in themeOptions"
+																:key="option.value"
+																class="cursor-pointer"
+															>
+																<input
+																	v-model="colorMode.preference"
+																	type="radio"
+																	name="theme"
+																	:value="option.value"
+																	class="peer sr-only"
+																/>
+																<span
+																	class="flex min-h-11 items-center justify-center rounded-lg px-2 text-center text-sm font-medium text-neutral-600 hover:bg-accented peer-checked:bg-default peer-checked:text-highlighted peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-primary-500 dark:text-neutral-300"
+																	>{{ option.label }}</span
+																>
+															</label>
+														</div>
+													</div>
+												</section>
+												<section
+													aria-labelledby="tiers-heading"
+													class="grid gap-3 border-t border-neutral-200 pt-6 sm:grid-cols-[11rem_1fr] sm:gap-6 dark:border-neutral-700"
+												>
+													<div>
+														<h2 id="tiers-heading" class="font-semibold">
+															Cenové ceníky
+														</h2>
+														<p
+															class="mt-1 text-sm text-neutral-500 dark:text-neutral-400"
+														>
+															Které ceny vás zajímají?
+														</p>
+													</div>
+													<div class="rounded-xl bg-muted p-4">
+														<fieldset>
+															<legend class="sr-only">
+																Vybrané cenové ceníky
+															</legend>
+															<div
+																class="grid grid-cols-2 gap-2 sm:grid-cols-3"
+															>
+																<label
+																	v-for="tier in priceTiers"
+																	:key="tier"
+																	class="cursor-pointer"
+																>
+																	<input
+																		v-model="selectedPriceTiers"
+																		type="checkbox"
+																		:value="tier"
+																		class="peer sr-only"
+																	/>
+																	<span
+																		class="flex min-h-11 items-center justify-center rounded-lg border border-neutral-300 bg-default px-3 text-sm font-medium text-neutral-700 hover:border-neutral-500 peer-checked:border-primary-500 peer-checked:bg-primary-50 peer-checked:text-primary-900 peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-primary-500 dark:border-neutral-600 dark:text-neutral-200 dark:hover:border-neutral-400 dark:peer-checked:border-primary-400 dark:peer-checked:bg-primary-950 dark:peer-checked:text-primary-200"
+																		>{{ tier }}</span
+																	>
+																</label>
+															</div>
+														</fieldset>
+														<p
+															class="mt-3 text-sm leading-relaxed text-neutral-500 dark:text-neutral-400"
+														>
+															Zatím jen náhled volby. Katalog obsahuje veřejné
+															akční ceny, nikoli ceny jednotlivých ceníků.
+														</p>
+													</div>
+												</section>
+											</div>
+										</template>
 									</UModal>
 								</div>
 							</div>
@@ -423,14 +562,14 @@ function clearSearch() {
 				</div>
 
 				<div
-					class="relative min-w-0 flex-1 border-t border-neutral-700 bg-neutral-900 lg:rounded-tl-3xl lg:border-l"
+					class="relative min-w-0 flex-1 border-t border-neutral-200 bg-white dark:border-neutral-700 dark:bg-neutral-900 lg:rounded-tl-3xl lg:border-l"
 				>
 					<section class="p-4">
 						<!-- <div class="mb-5 flex flex-wrap items-center gap-3">
 							<h1 class="text-xl font-semibold">Slevy Alza dny</h1>
 							<span
 								v-if="deals?.run && dealsStatus !== 'pending'"
-								class="text-sm text-neutral-400"
+								class="text-sm text-neutral-500 dark:text-neutral-400"
 							>
 								{{
 									searchTerm
@@ -445,13 +584,19 @@ function clearSearch() {
 								}}
 							</span>
 						</div> -->
-						<p v-if="dealsStatus === 'pending'" class="text-neutral-400">
+						<p
+							v-if="dealsStatus === 'pending'"
+							class="text-neutral-500 dark:text-neutral-400"
+						>
 							Načítání slev…
 						</p>
 						<p v-else-if="dealsError" class="text-red-400">
 							Slevy se nepodařilo načíst.
 						</p>
-						<p v-else-if="!deals?.products.length" class="text-neutral-400">
+						<p
+							v-else-if="!deals?.products.length"
+							class="text-neutral-500 dark:text-neutral-400"
+						>
 							{{
 								searchTerm || hasActiveFilters
 									? "Žádné slevy neodpovídají zadanému hledání a filtrům."
@@ -468,7 +613,7 @@ function clearSearch() {
 								:href="product.url"
 								target="_blank"
 								rel="noopener noreferrer"
-								class="group overflow-clip rounded-2xl border border-neutral-700 p-1 transition-colors duration-200 hover:border-primary-500/70 hover:bg-neutral-800/50 focus-visible:border-primary-500/70 focus-visible:bg-neutral-800/50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-400"
+								class="group overflow-clip rounded-2xl border border-neutral-200 p-1 transition-colors duration-200 hover:border-primary-500/70 hover:bg-neutral-100 focus-visible:border-primary-500/70 focus-visible:bg-neutral-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-400 dark:border-neutral-700 dark:hover:bg-neutral-800/50 dark:focus-visible:bg-neutral-800/50"
 							>
 								<div class="bg-white py-4 rounded-xl">
 									<img
@@ -485,12 +630,14 @@ function clearSearch() {
 										<div class="text-2xl font-bold">
 											{{ currency.format(product.priceAfterCoupon) }}
 										</div>
-										<div class="text-sm text-neutral-400 line-through">
+										<div
+											class="text-sm text-neutral-500 line-through dark:text-neutral-400"
+										>
 											{{ currency.format(product.priceWithoutCoupon) }}
 										</div>
 									</div>
 									<div class="flex gap-2 items-center mt-2">
-										<div class="text-neutral-300">
+										<div class="text-neutral-600 dark:text-neutral-300">
 											-{{ product.discountPct }}%
 										</div>
 										<div class="font-semibold">{{ product.couponCode }}</div>
@@ -513,7 +660,7 @@ function clearSearch() {
 								:disabled="productPage === 1"
 								@click="productPage--"
 							/>
-							<span class="text-sm text-neutral-400"
+							<span class="text-sm text-neutral-500 dark:text-neutral-400"
 								>Strana {{ productPage }} z
 								{{ Math.ceil(deals.total / deals.limit) }}</span
 							>
