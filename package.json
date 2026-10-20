@@ -5,6 +5,7 @@
 	"packageManager": "bun@1.4.2",
 	"scripts": {
 		"catalog:update": "bun scripts/update-catalog.ts",
+		"import:deals": "bun scripts/import-deals.ts",
 		"build": "nuxt build",
 		"deploy": "wrangler deploy",
 		"dev": "nuxt dev",
