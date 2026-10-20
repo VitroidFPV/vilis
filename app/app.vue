@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { cs } from "@nuxt/ui/locale"
 import categories from "./data/catalog.json"
 
 const activeIndex = ref<number | null>(null)
@@ -20,6 +21,9 @@ type SearchSuggestion = {
 	url: string
 	imageUrl: string | null
 	priceAfterCoupon: number
+	priceWithoutCoupon: number
+	discountPct: number
+	couponCode: string
 }
 const {
 	data: deals,
@@ -103,7 +107,7 @@ function clearSearch() {
 </script>
 
 <template>
-	<UApp>
+	<UApp :locale="cs">
 		<main class="min-h-screen flex flex-col bg-neutral-950">
 			<div class="p-2 pl-4 w-full shrink-0 nav flex">
 				<div class="gap-2 items-center flex w-64 shrink-0">
@@ -121,8 +125,8 @@ function clearSearch() {
 						<UFieldGroup>
 							<UInput
 								v-model="searchInput"
-								placeholder="Search deals"
-								aria-label="Search deals"
+								placeholder="Hledat slevy"
+								aria-label="Hledat slevy"
 								aria-controls="search-suggestions"
 								:aria-expanded="searchOpen && !!searchInput.trim()"
 								maxlength="100"
@@ -136,7 +140,7 @@ function clearSearch() {
 										color="neutral"
 										variant="link"
 										type="button"
-										aria-label="Clear search"
+										aria-label="Vymazat hledání"
 										size="sm"
 										@click="clearSearch"
 									/>
@@ -147,59 +151,86 @@ function clearSearch() {
 								color="neutral"
 								variant="subtle"
 								type="submit"
-								aria-label="Search"
+								aria-label="Hledat"
 							/>
 						</UFieldGroup>
 						<div
 							v-if="searchOpen && searchInput.trim()"
 							id="search-suggestions"
 							role="region"
-							aria-label="Search suggestions"
-							class="absolute top-full left-0 z-50 mt-2 w-full overflow-hidden rounded-xl border border-neutral-700 bg-neutral-900 shadow-xl"
+							aria-label="Návrhy hledání"
+							class="absolute top-full left-0 z-50 mt-2 max-h-[calc(100vh-4rem)] w-full overflow-y-auto rounded-2xl border border-neutral-700 bg-neutral-900 p-2 shadow-xl"
 						>
 							<p v-if="searchLoading" class="p-4 text-sm text-neutral-400">
-								Searching…
+								Vyhledávání…
 							</p>
 							<p v-else-if="searchError" class="p-4 text-sm text-red-400">
-								Could not load suggestions.
+								Návrhy se nepodařilo načíst.
 							</p>
 							<p
 								v-else-if="!suggestions.length"
 								class="p-4 text-sm text-neutral-400"
 							>
-								No matching deals.
+								Žádné odpovídající slevy.
 							</p>
-							<template v-else>
+							<div v-else class="flex flex-col gap-2">
 								<a
 									v-for="product in suggestions"
 									:key="product.alzaId"
 									:href="product.url"
 									target="_blank"
 									rel="noopener noreferrer"
-									class="flex items-center gap-3 border-b border-neutral-800 px-3 py-2 hover:bg-neutral-800 focus:bg-neutral-800"
+									class="group flex items-center gap-3 rounded-xl border border-neutral-700 p-1 transition-colors duration-200 hover:border-primary-500/70 hover:bg-neutral-800/50 focus-visible:border-primary-500/70 focus-visible:bg-neutral-800/50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-400"
 									@click="searchOpen = false"
 								>
-									<img
-										v-if="product.imageUrl"
-										:src="product.imageUrl"
-										alt=""
-										class="size-12 shrink-0 object-contain"
-										loading="lazy"
-									/>
-									<span class="min-w-0 flex-1 truncate text-sm">{{
-										product.name
-									}}</span>
-									<span class="shrink-0 text-sm font-medium text-primary-400">
-										{{ currency.format(product.priceAfterCoupon) }}
-									</span>
+									<div
+										class="flex size-20 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-white p-2"
+									>
+										<img
+											v-if="product.imageUrl"
+											:src="product.imageUrl"
+											alt=""
+											class="size-full object-contain motion-safe:transition-transform motion-safe:duration-300 motion-safe:group-hover:scale-105 motion-safe:group-focus-visible:scale-105"
+											loading="lazy"
+										/>
+									</div>
+									<div class="min-w-0 flex-1 py-1 pr-2">
+										<div
+											class="line-clamp-2 text-sm font-semibold leading-tight"
+										>
+											{{ product.name }}
+										</div>
+										<div
+											class="mt-1 flex flex-wrap items-baseline gap-x-2 gap-y-0.5"
+										>
+											<span class="font-bold">{{
+												currency.format(product.priceAfterCoupon)
+											}}</span>
+											<span class="text-xs text-neutral-400 line-through">{{
+												currency.format(product.priceWithoutCoupon)
+											}}</span>
+										</div>
+										<div class="mt-1 flex items-center gap-2 text-xs">
+											<span class="text-neutral-300"
+												>-{{ product.discountPct }}%</span
+											>
+											<span class="font-semibold">{{
+												product.couponCode
+											}}</span>
+											<UIcon
+												name="i-lucide-arrow-up-right"
+												class="ml-auto text-sm transition-colors duration-200 group-hover:text-primary-400 group-focus-visible:text-primary-400"
+											/>
+										</div>
+									</div>
 								</a>
 								<button
 									type="submit"
-									class="w-full px-3 py-2 text-left text-sm text-primary-400 hover:bg-neutral-800 focus:bg-neutral-800"
+									class="w-full rounded-lg px-3 py-2 text-left text-sm font-medium text-primary-400 hover:bg-neutral-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-400"
 								>
-									View all {{ suggestionTotal }} results
+									Zobrazit výsledky ({{ suggestionTotal }})
 								</button>
-							</template>
+							</div>
 						</div>
 					</form>
 					<div>
@@ -215,7 +246,7 @@ function clearSearch() {
 			<div class="flex flex-1 gap-1 pl-4" @mouseleave="activeIndex = null">
 				<div class="w-64 shrink-0 pt-4">
 					<nav
-						aria-label="Categories"
+						aria-label="Kategorie"
 						class="flex flex-col gap-1 self-start"
 						@mouseleave="onNavLeave"
 					>
@@ -236,39 +267,39 @@ function clearSearch() {
 				</div>
 
 				<div
-					class="relative min-w-0 flex-1 border-t border-l border-neutral-700 rounded-tl-2xl bg-neutral-900"
+					class="relative min-w-0 flex-1 border-t border-l border-neutral-700 rounded-tl-3xl bg-neutral-900"
 				>
-					<section class="p-6">
-						<div class="mb-5 flex flex-wrap items-center gap-3">
-							<h1 class="text-xl font-semibold">Alza Dny deals</h1>
+					<section class="p-4">
+						<!-- <div class="mb-5 flex flex-wrap items-center gap-3">
+							<h1 class="text-xl font-semibold">Slevy Alza dny</h1>
 							<span
 								v-if="deals?.run && dealsStatus !== 'pending'"
 								class="text-sm text-neutral-400"
 							>
 								{{
 									searchTerm
-										? `${deals.total} results`
-										: `${deals.run.productCount} products`
+										? `${deals.total} výsledků`
+										: `${deals.run.productCount} produktů`
 								}}
 								·
 								{{
 									deals.run.scope === "sample"
-										? `Sample from ${deals.run.pageCount} pages`
-										: "Full import"
+										? `Ukázka z ${deals.run.pageCount} stránek`
+										: "Úplný import"
 								}}
 							</span>
-						</div>
+						</div> -->
 						<p v-if="dealsStatus === 'pending'" class="text-neutral-400">
-							Loading deals…
+							Načítání slev…
 						</p>
 						<p v-else-if="dealsError" class="text-red-400">
-							Could not load deals.
+							Slevy se nepodařilo načíst.
 						</p>
 						<p v-else-if="!deals?.products.length" class="text-neutral-400">
 							{{
 								searchTerm
-									? `No deals found for “${searchTerm}”.`
-									: "No deals imported yet."
+									? `Pro „${searchTerm}“ nebyly nalezeny žádné slevy.`
+									: "Zatím nebyly importovány žádné slevy."
 							}}
 						</p>
 						<div
@@ -281,24 +312,37 @@ function clearSearch() {
 								:href="product.url"
 								target="_blank"
 								rel="noopener noreferrer"
-								class="rounded-xl border border-neutral-700 bg-neutral-800 p-4 hover:border-primary-500"
+								class="group overflow-clip rounded-2xl border border-neutral-700 p-1 transition-colors duration-200 hover:border-primary-500/70 hover:bg-neutral-800/50 focus-visible:border-primary-500/70 focus-visible:bg-neutral-800/50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-400"
 							>
-								<img
-									v-if="product.imageUrl"
-									:src="product.imageUrl"
-									:alt="product.name"
-									class="mb-3 h-40 w-full object-contain"
-									loading="lazy"
-								/>
-								<h2 class="line-clamp-2 font-medium">{{ product.name }}</h2>
-								<div class="mt-3 text-lg font-semibold text-primary-400">
-									{{ currency.format(product.priceAfterCoupon) }}
+								<div class="bg-white py-4 rounded-xl">
+									<img
+										v-if="product.imageUrl"
+										:src="product.imageUrl"
+										:alt="product.name"
+										class="mb-3 h-40 w-full object-contain motion-safe:transition-transform motion-safe:duration-300 motion-safe:group-hover:scale-102 motion-safe:group-focus-visible:scale-102"
+										loading="lazy"
+									/>
 								</div>
-								<div class="text-sm text-neutral-400 line-through">
-									{{ currency.format(product.priceWithoutCoupon) }}
-								</div>
-								<div class="mt-2 text-sm text-neutral-300">
-									{{ product.couponCode }} · {{ product.discountPct }}% off
+								<div class="flex flex-col gap-2 px-2 py-3">
+									<h2 class="line-clamp-2 font-semibold">{{ product.name }}</h2>
+									<div class="flex gap-2 items-end">
+										<div class="text-2xl font-bold">
+											{{ currency.format(product.priceAfterCoupon) }}
+										</div>
+										<div class="text-sm text-neutral-400 line-through">
+											{{ currency.format(product.priceWithoutCoupon) }}
+										</div>
+									</div>
+									<div class="flex gap-2 items-center mt-2">
+										<div class="text-neutral-300">
+											-{{ product.discountPct }}%
+										</div>
+										<div class="font-semibold">{{ product.couponCode }}</div>
+										<UIcon
+											name="i-lucide-arrow-up-right"
+											class="ml-auto transition-colors duration-200 group-hover:text-primary-400 group-focus-visible:text-primary-400 motion-safe:transition-transform motion-safe:duration-300 motion-safe:group-hover:translate-x-0.5 motion-safe:group-hover:-translate-y-0.5 motion-safe:group-focus-visible:translate-x-0.5 motion-safe:group-focus-visible:-translate-y-0.5"
+										/>
+									</div>
 								</div>
 							</a>
 						</div>
@@ -307,18 +351,18 @@ function clearSearch() {
 							class="mt-6 flex items-center justify-end gap-3"
 						>
 							<UButton
-								label="Previous"
+								label="Předchozí"
 								color="neutral"
 								variant="soft"
 								:disabled="productPage === 1"
 								@click="productPage--"
 							/>
 							<span class="text-sm text-neutral-400"
-								>Page {{ productPage }} of
+								>Strana {{ productPage }} z
 								{{ Math.ceil(deals.total / deals.limit) }}</span
 							>
 							<UButton
-								label="Next"
+								label="Další"
 								color="neutral"
 								variant="soft"
 								:disabled="productPage * deals.limit >= deals.total"
