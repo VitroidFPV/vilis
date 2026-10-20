@@ -19,9 +19,29 @@ function onNavLeave(event: MouseEvent) {
 <template>
 	<UApp>
 		<main class="min-h-screen flex flex-col bg-neutral-950">
-			<div class="h-12 w-full shrink-0"></div>
-			<div class="flex flex-1 gap-4 pl-4" @mouseleave="activeIndex = null">
-				<div class="w-64 shrink-0">
+			<div class="p-2 pl-4 w-full shrink-0 nav flex">
+				<div class="gap-2 items-center flex w-64 shrink-0">
+					<img src="/favicon.svg" class="size-6"/>
+					<span class="text-primary-500 font-semibold mr-2">Vilis</span>
+					<span class="text-neutral-500">Alza Slevy</span>
+				</div>
+				<div class="flex w-full items-center">
+					<UFieldGroup>
+						<UInput />
+						<UButton icon="i-lucide-search" color="neutral" variant="subtle" />
+					</UFieldGroup>
+					<div>
+						<!-- filtering options -->
+					</div>
+				</div>
+				<div class="flex gap-2 items-center justify-end">
+					<UModal>
+						<UButton icon="i-lucide-settings" color="neutral"></UButton>
+					</UModal>
+				</div>
+			</div>
+			<div class="flex flex-1 gap-1 pl-4" @mouseleave="activeIndex = null">
+				<div class="w-64 shrink-0 pt-4">
 					<nav
 						aria-label="Categories"
 						class="flex flex-col gap-1 self-start"
