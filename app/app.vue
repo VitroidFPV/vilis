@@ -37,6 +37,7 @@ const searchInput = ref("")
 const searchTerm = ref("")
 const searchForm = ref<HTMLFormElement | null>(null)
 const searchOpen = ref(false)
+const mobileControlsOpen = ref(false)
 const searchLoading = ref(false)
 const searchError = ref(false)
 const suggestions = ref<SearchSuggestion[]>([])
@@ -73,6 +74,16 @@ const currency = new Intl.NumberFormat("cs-CZ", {
 watch([sortBy, minDiscount, maxPrice], () => {
 	productPage.value = 1
 })
+
+function onSearchFocus() {
+	mobileControlsOpen.value = false
+	searchOpen.value = !!searchInput.value.trim()
+}
+
+function toggleMobileControls() {
+	mobileControlsOpen.value = !mobileControlsOpen.value
+	searchOpen.value = false
+}
 
 function clearFilters() {
 	minDiscount.value = "0"
@@ -160,25 +171,27 @@ function clearSearch() {
 
 <template>
 	<UApp :locale="cs">
-		<main class="min-h-screen flex flex-col bg-neutral-950">
+		<main
+			class="min-h-screen flex flex-col bg-neutral-950 pb-[calc(5rem+env(safe-area-inset-bottom))] lg:pb-0"
+		>
 			<div
 				class="relative flex w-full shrink-0 flex-wrap items-center gap-2 p-2 pl-4 lg:flex-nowrap"
 			>
 				<div class="flex w-full shrink-0 items-center gap-2 lg:w-48 xl:w-64">
 					<img src="/favicon.svg" class="size-6" />
 					<span class="text-primary-500 font-semibold mr-2">Vilis</span>
-					<span class="text-neutral-500">Alza Slevy</span>
+					<h1 class="text-base font-normal text-neutral-400">Alza Slevy</h1>
 				</div>
 				<div
-					class="flex min-w-0 w-full flex-wrap items-center gap-2 lg:w-auto lg:flex-1 lg:flex-nowrap"
+					class="fixed inset-x-0 bottom-0 z-40 flex w-full min-w-0 flex-col gap-0 rounded-t-[20px] border-t border-neutral-700 bg-neutral-950 pt-3 pr-[max(16px,env(safe-area-inset-right))] pb-[calc(12px+env(safe-area-inset-bottom))] pl-[max(16px,env(safe-area-inset-left))] lg:static lg:z-auto lg:w-auto lg:flex-1 lg:flex-row lg:items-center lg:gap-2 lg:rounded-none lg:border-0 lg:bg-transparent lg:p-0"
 				>
 					<form
 						ref="searchForm"
 						role="search"
-						class="relative w-full sm:w-auto lg:shrink-0"
+						class="search-form relative order-2 flex w-full items-center gap-2 lg:order-none lg:w-auto lg:shrink-0"
 						@submit.prevent="submitSearch"
 					>
-						<UFieldGroup class="w-full">
+						<UFieldGroup class="min-w-0 flex-1 lg:w-full">
 							<UInput
 								v-model="searchInput"
 								placeholder="Hledat slevy"
@@ -186,8 +199,9 @@ function clearSearch() {
 								aria-controls="search-suggestions"
 								:aria-expanded="searchOpen && !!searchInput.trim()"
 								maxlength="100"
-								class="w-full sm:w-64 lg:w-52 xl:w-72 2xl:w-96"
-								@focus="searchOpen = !!searchInput.trim()"
+								class="min-w-0 flex-1 lg:w-52 lg:flex-none xl:w-72 2xl:w-96"
+								:ui="{ base: 'min-h-11 text-base lg:min-h-0 lg:text-sm' }"
+								@focus="onSearchFocus"
 								@keydown.esc="searchOpen = false"
 							>
 								<template v-if="searchInput?.length" #trailing>
@@ -208,14 +222,39 @@ function clearSearch() {
 								variant="soft"
 								type="submit"
 								aria-label="Hledat"
+								class="min-w-11 justify-center lg:min-w-0"
 							/>
 						</UFieldGroup>
+						<UButton
+							:icon="
+								mobileControlsOpen
+									? 'i-lucide-chevron-down'
+									: 'i-lucide-sliders-horizontal'
+							"
+							color="neutral"
+							:variant="mobileControlsOpen ? 'solid' : 'soft'"
+							type="button"
+							:aria-label="
+								mobileControlsOpen
+									? 'Sbalit filtry a nastavení'
+									: 'Rozbalit filtry a nastavení'
+							"
+							:aria-expanded="mobileControlsOpen"
+							aria-controls="browse-controls"
+							class="relative size-11 shrink-0 justify-center lg:hidden"
+							@click="toggleMobileControls"
+						>
+							<span
+								v-if="hasActiveFilters"
+								class="absolute right-1 top-1 size-2 rounded-full bg-primary-400"
+							/>
+						</UButton>
 						<div
 							v-if="searchOpen && searchInput.trim()"
 							id="search-suggestions"
 							role="region"
 							aria-label="Návrhy hledání"
-							class="absolute top-full left-0 z-50 mt-2 max-h-[calc(100vh-4rem)] w-full overflow-y-auto rounded-2xl border border-neutral-700 bg-neutral-900 p-2 shadow-xl"
+							class="absolute max-h-[calc(100dvh-8rem-env(safe-area-inset-bottom))] overscroll-contain lg:max-h-[calc(100vh-4rem)] bottom-full left-0 z-50 mb-3 w-full overflow-y-auto rounded-2xl border border-neutral-700 bg-neutral-900 p-2 shadow-xl lg:bottom-auto lg:top-full lg:mb-0 lg:mt-2"
 						>
 							<p v-if="searchLoading" class="p-4 text-sm text-neutral-400">
 								Vyhledávání…
@@ -290,56 +329,78 @@ function clearSearch() {
 						</div>
 					</form>
 					<div
-						class="flex w-full min-w-0 items-center gap-2 lg:w-auto lg:flex-none"
-						aria-label="Řazení a filtry"
+						class="order-1 grid w-full transition-[grid-template-rows,opacity,visibility] duration-[280ms,180ms,0s] ease-[cubic-bezier(0.22,1,0.36,1),ease,linear] motion-reduce:transition-none lg:visible lg:contents lg:opacity-100 lg:transition-none"
+						:class="
+							mobileControlsOpen
+								? 'visible grid-rows-[1fr] opacity-100 delay-0'
+								: 'invisible grid-rows-[0fr] opacity-0 delay-[0s,0s,280ms]'
+						"
 					>
-						<div
-							class="flex min-w-0 flex-1 items-center gap-2 overflow-x-auto lg:flex-none lg:overflow-visible"
-						>
-							<USelect
-								v-model="sortBy"
-								:items="sortOptions"
-								aria-label="Řadit produkty"
-								class="min-w-44 shrink-0 lg:w-32 lg:min-w-0 xl:w-auto xl:min-w-44"
-							/>
-							<USelect
-								v-model="minDiscount"
-								:items="discountOptions"
-								aria-label="Minimální sleva"
-								class="min-w-44 shrink-0 lg:w-32 lg:min-w-0 xl:w-auto xl:min-w-44"
-							/>
-							<USelect
-								v-model="maxPrice"
-								:items="priceOptions"
-								aria-label="Maximální cena"
-								class="min-w-44 shrink-0 lg:w-32 lg:min-w-0 xl:w-auto xl:min-w-44"
-							/>
+						<div class="min-h-0 overflow-hidden lg:contents">
+							<div
+								id="browse-controls"
+								class="mb-3 flex max-h-[calc(100dvh-8rem-env(safe-area-inset-bottom))] w-full min-w-0 flex-col gap-3 overflow-y-auto overscroll-contain border-b border-neutral-700 pb-3 lg:mb-0 lg:max-h-none lg:w-auto lg:flex-1 lg:flex-row lg:items-center lg:gap-2 lg:overflow-visible lg:border-0 lg:pb-0"
+								aria-label="Řazení a filtry"
+							>
+								<div
+									class="flex min-w-0 flex-col gap-2 lg:flex-row lg:items-center"
+								>
+									<USelect
+										v-model="sortBy"
+										:items="sortOptions"
+										:ui="{ item: 'min-h-11 lg:min-h-0' }"
+										aria-label="Řadit produkty"
+										class="min-h-11 w-full shrink-0 lg:min-h-0 lg:w-32 lg:min-w-0 xl:w-auto xl:min-w-44"
+									/>
+									<USelect
+										v-model="minDiscount"
+										:items="discountOptions"
+										:ui="{ item: 'min-h-11 lg:min-h-0' }"
+										aria-label="Minimální sleva"
+										class="min-h-11 w-full shrink-0 lg:min-h-0 lg:w-32 lg:min-w-0 xl:w-auto xl:min-w-44"
+									/>
+									<USelect
+										v-model="maxPrice"
+										:items="priceOptions"
+										:ui="{ item: 'min-h-11 lg:min-h-0' }"
+										aria-label="Maximální cena"
+										class="min-h-11 w-full shrink-0 lg:min-h-0 lg:w-32 lg:min-w-0 xl:w-auto xl:min-w-44"
+									/>
+								</div>
+								<div class="flex items-center justify-between gap-2 lg:ml-auto">
+									<UButton
+										v-if="hasActiveFilters"
+										icon="i-lucide-x"
+										label="Vymazat filtry"
+										aria-label="Vymazat filtry"
+										color="neutral"
+										variant="ghost"
+										class="min-h-11 shrink-0 lg:min-h-0 lg:size-8 lg:justify-center lg:p-0"
+										:ui="{ label: 'lg:hidden' }"
+										@click="clearFilters"
+									/>
+									<UModal title="Nastavení">
+										<UButton
+											icon="i-lucide-settings"
+											label="Nastavení"
+											aria-label="Nastavení"
+											color="neutral"
+											variant="soft"
+											class="ml-auto min-h-11 lg:min-h-0 lg:size-8 lg:justify-center lg:p-0"
+											:ui="{ label: 'lg:hidden' }"
+										/>
+									</UModal>
+								</div>
+							</div>
 						</div>
-						<UButton
-							v-if="hasActiveFilters"
-							icon="i-lucide-x"
-							aria-label="Vymazat filtry"
-							title="Vymazat filtry"
-							color="neutral"
-							variant="ghost"
-							class="shrink-0"
-							@click="clearFilters"
-						/>
 					</div>
-				</div>
-				<div
-					class="absolute right-2 top-2 flex items-center justify-end gap-2 lg:static"
-				>
-					<UModal>
-						<UButton icon="i-lucide-settings" color="neutral"></UButton>
-					</UModal>
 				</div>
 			</div>
 			<div
-				class="flex flex-1 flex-col gap-1 pl-4 lg:flex-row"
+				class="flex flex-1 flex-col gap-1 lg:flex-row lg:pl-4"
 				@mouseleave="activeIndex = null"
 			>
-				<div class="w-full min-w-0 pt-2 lg:w-64 lg:shrink-0 lg:pt-4">
+				<div class="hidden min-w-0 lg:block lg:w-64 lg:shrink-0 lg:pt-4">
 					<nav
 						aria-label="Kategorie"
 						class="flex gap-1 overflow-x-auto lg:flex-col lg:overflow-visible"
@@ -362,7 +423,7 @@ function clearSearch() {
 				</div>
 
 				<div
-					class="relative min-w-0 flex-1 border-t border-l border-neutral-700 rounded-tl-3xl bg-neutral-900"
+					class="relative min-w-0 flex-1 border-t border-neutral-700 bg-neutral-900 lg:rounded-tl-3xl lg:border-l"
 				>
 					<section class="p-4">
 						<!-- <div class="mb-5 flex flex-wrap items-center gap-3">
@@ -443,7 +504,7 @@ function clearSearch() {
 						</div>
 						<div
 							v-if="deals?.run && deals.total > 0 && dealsStatus !== 'pending'"
-							class="mt-6 flex items-center justify-end gap-3"
+							class="mt-6 flex flex-wrap items-center justify-center gap-3 lg:justify-end"
 						>
 							<UButton
 								label="Předchozí"
@@ -468,7 +529,7 @@ function clearSearch() {
 					<UCard
 						v-if="activeCategory"
 						id="subcategories"
-						class="mb-4 max-w-full rounded-xl lg:absolute lg:inset-y-1 lg:left-1 lg:mb-0 lg:w-xl lg:max-w-[calc(100%-0.5rem)] lg:overflow-y-auto"
+						class="hidden mb-4 max-w-full rounded-xl lg:block lg:absolute lg:inset-y-1 lg:left-1 lg:mb-0 lg:w-xl lg:max-w-[calc(100%-0.5rem)] lg:overflow-y-auto"
 						@mouseleave="activeIndex = null"
 					>
 						<UButton

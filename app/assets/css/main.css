@@ -2,21 +2,22 @@
 @import "@nuxt/ui";
 
 @theme {
-  --font-sans: 'Geist', sans-serif;
+	--font-sans: "Geist", sans-serif;
 }
 
-:root, .light {
-  --ui-bg: var(--ui-color-neutral-50);
-  --ui-bg-muted: var(--ui-color-neutral-100);
-  --ui-text-inverted: var(--ui-color-neutral-50);
+:root,
+.light {
+	--ui-bg: var(--ui-color-neutral-50);
+	--ui-bg-muted: var(--ui-color-neutral-100);
+	--ui-text-inverted: var(--ui-color-neutral-50);
 }
 
 .dark {
-  --ui-color-neutral-950: oklch(18% 0.005 285.823);
-  --ui-text-highlighted: var(--ui-color-neutral-50);
-  --ui-bg-inverted: var(--ui-color-neutral-50);
-  --ui-border-inverted: var(--ui-color-neutral-50);
-  --ui-bg: var(--ui-color-neutral-900);
-  --ui-bg-muted: var(--ui-color-neutral-800);
-  --ui-text-inverted: var(--ui-color-neutral-900);
+	--ui-color-neutral-950: oklch(18% 0.005 285.823);
+	--ui-text-highlighted: var(--ui-color-neutral-50);
+	--ui-bg-inverted: var(--ui-color-neutral-50);
+	--ui-border-inverted: var(--ui-color-neutral-50);
+	--ui-bg: var(--ui-color-neutral-900);
+	--ui-bg-muted: var(--ui-color-neutral-800);
+	--ui-text-inverted: var(--ui-color-neutral-900);
 }
