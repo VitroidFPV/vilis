@@ -60,6 +60,12 @@ The `upload` command sends batches through Wrangler and is safe to rerun after a
 
 To deploy the frontend manually after signing in with Wrangler, run `bun run deploy`. To deploy the probe, run Wrangler with `--config cloudflare/wrangler.jsonc`.
 
+Worker Previews bind `DB` to the separate `alza-dny-preview` D1 database. Apply new migrations to it before deploying a Preview:
+
+```bash
+bunx wrangler d1 migrations apply alza-dny-preview --remote --config cloudflare/wrangler.preview-migrations.jsonc
+```
+
 For automatic frontend deploys, connect this repository to a new Worker named `vilis` in Cloudflare Workers Builds. Use the repository root as the root directory, `bun run build` as the build command, and `bun run deploy` as the deploy command. Set the build variable `BUN_VERSION=1.4.2`, matching `package.json` and `bun.lock`. Cloudflare installs dependencies before running the build command.
 
 The frontend Worker is separate from `alza-dny-fetch-probe`; do not connect the probe Worker to this frontend build configuration.

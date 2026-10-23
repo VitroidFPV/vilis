@@ -1,0 +1,11 @@
+{
+	"name": "vilis-preview-migrations",
+	"d1_databases": [
+		{
+			"binding": "DB",
+			"database_name": "alza-dny-preview",
+			"database_id": "b8f38032-a558-494c-8cce-4b78419fd041",
+			"migrations_dir": "migrations",
+		},
+	],
+}
