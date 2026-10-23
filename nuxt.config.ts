@@ -16,4 +16,9 @@ export default defineNuxtConfig({
 			link: [{ rel: "icon", type: "image/x-icon", href: "/favicon.svg" }],
 		},
 	},
+	ui: {
+		theme: {
+			colors: ["secondary", "success", "info", "warning", "error", "orange"],
+		},
+	},
 })

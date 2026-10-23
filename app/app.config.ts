@@ -3,6 +3,7 @@ export default defineAppConfig({
 		colors: {
 			primary: "cyan",
 			neutral: "zinc",
+			orange: "orange"
 		},
 		button: {
 			defaultVariants: {
@@ -10,6 +11,15 @@ export default defineAppConfig({
 			},
 		},
 		badge: {
+			variants: {
+				size: {
+					xs: { base: "rounded-full" },
+					sm: { base: "rounded-full" },
+					md: { base: "rounded-full" },
+					lg: { base: "rounded-full" },
+					xl: { base: "rounded-full" },
+				},
+			},
 			defaultVariants: {
 				variant: "soft",
 			},
