@@ -44,6 +44,15 @@ type TierPricesResponse = {
 	prices: { label: string; price: number }[]
 }
 
+function showNoTierPricesToast() {
+	toast.add({
+		title: "Žádné odlišné ceny ceníků",
+		color: "info",
+		icon: "i-lucide-info",
+		duration: 3000,
+	})
+}
+
 async function loadTierPrices() {
 	if (priceDetailsLoading.value) return
 	clearTimeout(errorResetTimer)
@@ -70,7 +79,8 @@ async function loadTierPrices() {
 			)
 			.map(({ label, price }) => ({ label, price }))
 		pricesLoadedAt = Date.now()
-		priceDetailsOpen.value = true
+		if (tierPrices.value.length) priceDetailsOpen.value = true
+		else showNoTierPricesToast()
 	} catch {
 		priceDetailsError.value = true
 		errorResetTimer = setTimeout(() => {
@@ -95,7 +105,8 @@ function togglePriceDetails() {
 		tierPrices.value !== null &&
 		Date.now() - pricesLoadedAt < 30 * 60 * 1000
 	) {
-		priceDetailsOpen.value = true
+		if (tierPrices.value.length) priceDetailsOpen.value = true
+		else showNoTierPricesToast()
 	} else {
 		void loadTierPrices()
 	}
@@ -109,8 +120,12 @@ function togglePriceDetails() {
 		rel="noopener noreferrer"
 		class="group overflow-clip rounded-2xl border border-neutral-200 p-1 transition-colors duration-200 hover:border-primary-500/70 hover:bg-neutral-100 focus-visible:border-primary-500/70 focus-visible:bg-neutral-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-400 dark:border-neutral-700 dark:hover:bg-neutral-800/50 dark:focus-visible:bg-neutral-800/50"
 	>
-		<div class="h-52">
-			<div class="bg-white p-6 rounded-xl h-full" v-if="!priceDetailsOpen">
+		<div class="relative h-52 overflow-hidden">
+			<div
+				class="absolute inset-0 rounded-xl bg-white p-6 motion-safe:transition-transform motion-safe:duration-300 motion-safe:ease-in-out"
+				:class="priceDetailsOpen ? '-translate-x-full' : 'translate-x-0'"
+				:aria-hidden="priceDetailsOpen"
+			>
 				<img
 					v-if="product.imageUrl"
 					:src="product.imageUrl"
@@ -120,35 +135,28 @@ function togglePriceDetails() {
 				/>
 			</div>
 			<div
-				v-else
-				class="flex h-full flex-col gap-2 overflow-y-auto p-2 text-sm"
+				class="absolute inset-0 flex flex-col gap-2 overflow-y-auto p-2 text-sm motion-safe:transition-transform motion-safe:duration-300 motion-safe:ease-in-out"
+				:class="priceDetailsOpen ? 'translate-x-0' : 'translate-x-full'"
+				:aria-hidden="!priceDetailsOpen"
 			>
-				<template v-if="tierPrices?.length">
-					<div
-						v-for="tier in tierPrices"
-						:key="tier.label"
-						class="flex items-center justify-between gap-2"
-					>
-						<div class="flex flex-wrap gap-1">
-							<UBadge
-								v-for="name in tier.label.split('/')"
-								:key="name"
-								size="lg"
-								:color="tierStyle[name]!.color"
-								:icon="tierStyle[name]!.icon"
-								>{{ name }}</UBadge
-							>
-						</div>
-						<span class="shrink-0">{{ currency.format(tier.price) }}</span>
-					</div>
-				</template>
-				<p v-else class="text-neutral-500 dark:text-neutral-400">
-					Žádné odlišné ceny ceníků nejsou dostupné.
-				</p>
-				<p
-					v-if="tierPrices"
-					class="mt-auto text-xs text-neutral-500 dark:text-neutral-400"
+				<div
+					v-for="tier in tierPrices"
+					:key="tier.label"
+					class="flex items-center justify-between gap-2"
 				>
+					<div class="flex flex-wrap gap-1">
+						<UBadge
+							v-for="name in tier.label.split('/')"
+							:key="name"
+							size="lg"
+							:color="tierStyle[name]!.color"
+							:icon="tierStyle[name]!.icon"
+							>{{ name }}</UBadge
+						>
+					</div>
+					<span class="shrink-0">{{ currency.format(tier.price) }}</span>
+				</div>
+				<p class="mt-auto text-xs text-neutral-500 dark:text-neutral-400">
 					Ceny z Alza.cz
 				</p>
 			</div>
