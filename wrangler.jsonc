@@ -15,6 +15,15 @@
 			"migrations_dir": "cloudflare/migrations",
 		},
 	],
+	"previews": {
+		"d1_databases": [
+			{
+				"binding": "DB",
+				"database_name": "alza-dny-preview",
+				"database_id": "b8f38032-a558-494c-8cce-4b78419fd041",
+			},
+		],
+	},
 	"observability": {
 		"enabled": true,
 	},
