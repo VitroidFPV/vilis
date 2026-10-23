@@ -6,7 +6,7 @@ Work in progress for a site that displays public Alza Dny deals and price histor
 
 - The Nuxt frontend displays a checked-in snapshot of Alza's English catalog categories and reads imported deals through `/api/products`. Its Worker configuration and D1 binding are in the root `wrangler.jsonc`.
 - `src/parser.ts` parses Alza Dny listing HTML into validated products and category links, and reports whether the page is logged out.
-- `cloudflare/probe.mjs` is a deployed, single-page fetch probe. `/health` checks its D1 binding; `/probe` checks `robots.txt`, fetches one listing page, and returns parse counts. It does not store data.
+- `cloudflare/probe.mjs` is a deployed fetch probe. `/health` checks its D1 binding; `/probe` checks `robots.txt`, fetches one listing page, and returns parse counts. `/catalog-probe` checks `robots.txt`, fetches the catalog, and returns category counts using the same parser as the local updater. It does not store data.
 - The `alza-dny` D1 database is bound to both Workers as `DB`. A one-time experiment left 24 validated anonymous products in a disposable `probe_products` table. The first three listing pages have been imported remotely as a 72-product sample; there is no cron trigger.
 
 The parser's TypeScript configuration is in `tsconfig.probe.json`, separate from Nuxt's root `tsconfig.json`.
@@ -25,7 +25,7 @@ bun run deploy --dry-run
 
 ## Refresh the category sidebar
 
-Run `bun run catalog:update` to fetch `https://www.alza.cz/en/catalog` locally and update `app/data/catalog.json`. The script uses the native HTTPS request pattern from the original local product scraper, checks Alza's `robots.txt` and the response, then reads the two-level catalog from the page's streamed data. It rejects incomplete data and leaves the existing snapshot intact. Review the JSON diff before committing it.
+Run `bun run catalog:update` to fetch `https://www.alza.cz/catalog` locally and update `app/data/catalog.json`. The script uses the native HTTPS request pattern from the original local product scraper, checks Alza's `robots.txt` and the response, then reads the two-level catalog from the page's streamed data. It rejects incomplete data and leaves the existing snapshot intact. Review the JSON diff before committing it. The deployed probe's `/catalog-probe` route runs the shared fetch, parse, and validation logic with Worker `fetch`, returning counts without updating the checked-in snapshot.
 
 If Alza blocks the direct request, open the catalog URL in a browser, save the page as HTML, and run `bun run catalog:update --from-file /path/to/catalog.html`. The saved HTML is ignored by Git; do not commit browser-saved pages because they may contain visitor identifiers.
 

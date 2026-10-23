@@ -1,13 +1,14 @@
 import robotsParser from "robots-parser"
 import { parseSavedHtml } from "../src/parser.ts"
+import { fetchCatalog, userAgent as catalogUserAgent } from "../src/catalog.ts"
 
 const userAgent = "AlzaDnyLocalResearch/0.1"
 const robotsUrl = "https://www.alza.cz/robots.txt"
 const pageUrl = "https://www.alza.cz/alza-dny/e40.htm"
 
-async function requestText(url) {
+async function requestText(url, agent = userAgent) {
 	const response = await fetch(url, {
-		headers: { "User-Agent": userAgent, Accept: "text/html,text/plain" },
+		headers: { "User-Agent": agent, Accept: "text/html,text/plain" },
 	})
 	const body = await response.text()
 	const bytes = new TextEncoder().encode(body).byteLength
@@ -39,6 +40,18 @@ export default {
 			if (pathname === "/" || pathname === "/health") {
 				await env.DB.prepare("SELECT 1").first()
 				return Response.json({ status: "ok", database: "ok" })
+			}
+			if (pathname === "/catalog-probe") {
+				const catalog = await fetchCatalog((url) =>
+					requestText(url.href, catalogUserAgent),
+				)
+				return Response.json({
+					categories: catalog.length,
+					subcategories: catalog.reduce(
+						(total, category) => total + category.children.length,
+						0,
+					),
+				})
 			}
 			if (pathname !== "/probe")
 				return new Response("Not found", { status: 404 })
