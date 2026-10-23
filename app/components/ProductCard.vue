@@ -1,5 +1,5 @@
 <script setup lang="ts">
-defineProps<{
+const props = defineProps<{
 	product: {
 		alzaId: number
 		name: string
@@ -17,6 +17,89 @@ const currency = new Intl.NumberFormat("cs-CZ", {
 	currency: "CZK",
 	maximumFractionDigits: 0,
 })
+const toast = useToast()
+
+const priceDetailsOpen = ref(false)
+const priceDetailsLoading = ref(false)
+const priceDetailsError = ref(false)
+const tierPrices = ref<{ label: string; price: number }[] | null>(null)
+let pricesLoadedAt = 0
+let errorResetTimer: ReturnType<typeof setTimeout> | undefined
+
+onUnmounted(() => clearTimeout(errorResetTimer))
+
+const tierStyle: Record<
+	string,
+	{ color: "info" | "warning" | "neutral" | "primary" | "orange"; icon: string }
+> = {
+	B2B: { color: "info", icon: "i-lucide-handshake" },
+	Gold: { color: "warning", icon: "i-lucide-circle-check-big" },
+	Silver: { color: "neutral", icon: "i-lucide-circle-check-big" },
+	ISIC: { color: "primary", icon: "i-lucide-graduation-cap" },
+	Bronze: { color: "orange", icon: "i-lucide-circle-check-big" },
+}
+
+type TierPricesResponse = {
+	id: string
+	prices: { label: string; price: number }[]
+}
+
+async function loadTierPrices() {
+	if (priceDetailsLoading.value) return
+	clearTimeout(errorResetTimer)
+	priceDetailsLoading.value = true
+	priceDetailsError.value = false
+	try {
+		const response = await fetch(`/api/tier-prices/${props.product.alzaId}`)
+		if (!response.ok) throw new Error(`Tier prices returned ${response.status}`)
+		const data = (await response.json()) as TierPricesResponse
+		if (
+			data.id !== String(props.product.alzaId) ||
+			!Array.isArray(data.prices)
+		) {
+			throw new Error("Invalid tier price response")
+		}
+		tierPrices.value = data.prices
+			.filter(
+				(entry) =>
+					entry !== null &&
+					typeof entry.label === "string" &&
+					entry.label.split("/").every((name) => name in tierStyle) &&
+					Number.isFinite(entry.price) &&
+					entry.price > 0,
+			)
+			.map(({ label, price }) => ({ label, price }))
+		pricesLoadedAt = Date.now()
+		priceDetailsOpen.value = true
+	} catch {
+		priceDetailsError.value = true
+		errorResetTimer = setTimeout(() => {
+			priceDetailsError.value = false
+		}, 3000)
+		toast.add({
+			title: "Ceníky se nepodařilo načíst",
+			description: "Zkuste to prosím znovu.",
+			color: "error",
+			icon: "i-lucide-circle-alert",
+			duration: 3000,
+		})
+	} finally {
+		priceDetailsLoading.value = false
+	}
+}
+
+function togglePriceDetails() {
+	if (priceDetailsOpen.value) {
+		priceDetailsOpen.value = false
+	} else if (
+		tierPrices.value !== null &&
+		Date.now() - pricesLoadedAt < 30 * 60 * 1000
+	) {
+		priceDetailsOpen.value = true
+	} else {
+		void loadTierPrices()
+	}
+}
 </script>
 
 <template>
@@ -26,14 +109,49 @@ const currency = new Intl.NumberFormat("cs-CZ", {
 		rel="noopener noreferrer"
 		class="group overflow-clip rounded-2xl border border-neutral-200 p-1 transition-colors duration-200 hover:border-primary-500/70 hover:bg-neutral-100 focus-visible:border-primary-500/70 focus-visible:bg-neutral-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-400 dark:border-neutral-700 dark:hover:bg-neutral-800/50 dark:focus-visible:bg-neutral-800/50"
 	>
-		<div class="bg-white py-4 rounded-xl">
-			<img
-				v-if="product.imageUrl"
-				:src="product.imageUrl"
-				:alt="product.name"
-				class="mb-3 h-40 w-full object-contain motion-safe:transition-transform motion-safe:duration-300 motion-safe:group-hover:scale-102 motion-safe:group-focus-visible:scale-102"
-				loading="lazy"
-			/>
+		<div class="h-52">
+			<div class="bg-white p-6 rounded-xl h-full" v-if="!priceDetailsOpen">
+				<img
+					v-if="product.imageUrl"
+					:src="product.imageUrl"
+					:alt="product.name"
+					class="mb-3 h-full w-full object-contain motion-safe:transition-transform motion-safe:duration-300 motion-safe:group-hover:scale-102 motion-safe:group-focus-visible:scale-102"
+					loading="lazy"
+				/>
+			</div>
+			<div
+				v-else
+				class="flex h-full flex-col gap-2 overflow-y-auto p-2 text-sm"
+			>
+				<template v-if="tierPrices?.length">
+					<div
+						v-for="tier in tierPrices"
+						:key="tier.label"
+						class="flex items-center justify-between gap-2"
+					>
+						<div class="flex flex-wrap gap-1">
+							<UBadge
+								v-for="name in tier.label.split('/')"
+								:key="name"
+								size="lg"
+								:color="tierStyle[name]!.color"
+								:icon="tierStyle[name]!.icon"
+								>{{ name }}</UBadge
+							>
+						</div>
+						<span class="shrink-0">{{ currency.format(tier.price) }}</span>
+					</div>
+				</template>
+				<p v-else class="text-neutral-500 dark:text-neutral-400">
+					Žádné odlišné ceny ceníků nejsou dostupné.
+				</p>
+				<p
+					v-if="tierPrices"
+					class="mt-auto text-xs text-neutral-500 dark:text-neutral-400"
+				>
+					Ceny z Alza.cz
+				</p>
+			</div>
 		</div>
 		<div class="flex flex-col gap-2 px-2 py-3">
 			<h2 class="line-clamp-2 font-semibold">{{ product.name }}</h2>
@@ -45,6 +163,28 @@ const currency = new Intl.NumberFormat("cs-CZ", {
 					class="text-sm text-neutral-500 line-through dark:text-neutral-400"
 				>
 					{{ currency.format(product.priceWithoutCoupon) }}
+				</div>
+				<div class="ml-auto">
+					<UButton
+						:color="priceDetailsError ? 'error' : 'neutral'"
+						:icon="
+							priceDetailsError
+								? 'i-lucide-circle-alert'
+								: 'i-lucide-list-collapse'
+						"
+						:loading="priceDetailsLoading"
+						:aria-label="
+							priceDetailsLoading
+								? 'Načítání cen ceníků'
+								: priceDetailsError
+									? 'Zkusit znovu načíst ceny ceníků'
+									: priceDetailsOpen
+										? 'Skrýt ceny ceníků'
+										: 'Zobrazit ceny ceníků'
+						"
+						:aria-expanded="priceDetailsOpen"
+						@click.prevent.stop="togglePriceDetails"
+					/>
 				</div>
 			</div>
 			<div class="flex gap-2 items-center mt-2">

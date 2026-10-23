@@ -8,7 +8,7 @@
 		"import:deals": "bun scripts/import-deals.ts",
 		"build": "nuxt build",
 		"deploy": "wrangler deploy",
-		"dev": "nuxt dev",
+		"dev": "bun --bun node_modules/nuxt/bin/nuxt.mjs dev",
 		"generate": "nuxt generate",
 		"preview": "nuxt preview",
 		"postinstall": "nuxt prepare",
